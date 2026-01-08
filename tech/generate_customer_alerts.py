@@ -3316,6 +3316,9 @@ def write_html_dashboard(
         @media (max-width: 768px) {{ .summary {{ grid-template-columns: 1fr; }} }}
         .card-wide {{ grid-column: 1 / -1; }}
         .card {{ background: #fff; padding: 16px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }}
+        .role-service #manufacturerCard {{ display:none; }}
+        .role-ops #actionTable, .role-ops .toolbar, .role-ops .filters {{ display:none !important; }}
+        .role-ops #manufacturerCard {{ display:block !important; }}
         .mini-table {{ width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 12px; font-size: 13px; color: #475569; }}
         .mini-table th {{ background: #f8fafc; font-weight: 600; color: #64748b; padding: 8px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }}
         .mini-table td {{ padding: 8px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }}
@@ -3563,8 +3566,7 @@ def write_html_dashboard(
         {sku_push_html}
         {sku_return_html}
         {low_margin_html}
-    </div>
-    <div class="card card-wide">
+        <div class="card card-wide" id="manufacturerCard">
             <h3>厂家分析（全库历史表现）</h3>
             <p style="margin: 6px 0 10px 0; font-size: 12px; color: #64748b;">
                 依据全库订单按厂家聚合，展示 Top 厂家的订单量、退货率与客单价概览，用于判断供应侧风险与潜力。
@@ -3580,11 +3582,11 @@ def write_html_dashboard(
                         </tr>
                     </thead>
                     <tbody id="manufacturerSummaryBody">
-                        <!-- 将由前端脚本注入 Top 厂家明细 -->
                     </tbody>
                 </table>
             </div>
         </div>
+    </div>
 
     <div class="toolbar">
         <button id="exportCsv">导出今日联系记录 (CSV)</button>
@@ -6678,7 +6680,7 @@ def write_html_dashboard(
         }}
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans h-screen flex overflow-hidden">
+<body class="bg-slate-50 text-slate-800 font-sans h-screen flex overflow-hidden role-service">
 
     <!-- 左侧导航栏 -->
     <aside class="w-64 bg-white border-r border-slate-200 flex flex-col flex-shrink-0 z-20 shadow-sm">
@@ -6897,11 +6899,15 @@ def write_html_dashboard(
                 btnOps.className = `px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${inactiveClass}`;
                 const radio = document.getElementById('roleCustomerService');
                 if (radio) radio.click();
+                document.body.classList.add('role-service');
+                document.body.classList.remove('role-ops');
             } else {
                 btnService.className = `px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${inactiveClass}`;
                 btnOps.className = `px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${activeClass}`;
                 const radio = document.getElementById('roleOperations');
                 if (radio) radio.click();
+                document.body.classList.remove('role-service');
+                document.body.classList.add('role-ops');
             }
             playSound('click');
         }
@@ -6913,6 +6919,7 @@ def write_html_dashboard(
             if (cooldownSpan && badge) {
                 badge.textContent = cooldownSpan.textContent;
             }
+            // 默认进入客服视角：body 已带 role-service 类；无需 JS 再切换
         });
 
         // 侧边栏导航高亮切换
