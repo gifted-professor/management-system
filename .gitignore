@@ -29,19 +29,3 @@ tech/新增账单/拉取_*.xlsx
 
 # 合并后的账单
 tech/账单汇总_*.xlsx
-
-# Python 缓存
-__pycache__/
-*.pyc
-
-# 虚拟环境
-venv/
-.venv/
-
-# 旧归档
-archive/
-
-# IDE 临时文件
-.gemini-clipboard/
-.idea/
-.vscode/

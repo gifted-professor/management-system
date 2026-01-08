@@ -3087,7 +3087,7 @@ def write_html_dashboard(
             )
         # 构建完整表格
         tbl = (
-            "<table class='mini-table w-full' id='skuPushTableStatic' style='display:table !important;'><thead><tr>"
+            "<table class='mini-table w-full'><thead><tr>"
             "<th>货品名</th><th data-sort-method='number'>订单数</th>"
             "<th data-sort-method='number'>退货率</th><th data-sort-method='number'>销售额</th>"
             "</tr></thead>"
@@ -3097,7 +3097,7 @@ def write_html_dashboard(
         return (
             "<div class=\"card\"><h3>加推SKU（近45天 订单>2 且 退货率<30%） "
             f"<span class=\"text-xs font-normal text-slate-400 ml-2\">(共{total_count}款)</span></h3>"
-            f"<div id=\"skuPushContainer\" class=\"scroll-pane border border-slate-200 rounded-lg\" style=\"min-height: 50px;\">{tbl}</div></div>"
+            f"<div id=\"skuPushTable\" class=\"scroll-pane border border-slate-200 rounded-lg\">{tbl}</div></div>"
         )
 
     sku_push_html = build_sku_push_table(global_details, today)
@@ -3314,6 +3314,7 @@ def write_html_dashboard(
         .summary {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(max(320px, calc((100% - 32px) / 3)), 1fr)); gap: 16px; margin-bottom: 24px; }}
         @media (max-width: 1200px) {{ .summary {{ grid-template-columns: repeat(auto-fill, minmax(max(280px, calc((100% - 16px) / 2)), 1fr)); }} }}
         @media (max-width: 768px) {{ .summary {{ grid-template-columns: 1fr; }} }}
+        .card-wide {{ grid-column: 1 / -1; }}
         .card {{ background: #fff; padding: 16px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }}
         .mini-table {{ width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 12px; font-size: 13px; color: #475569; }}
         .mini-table th {{ background: #f8fafc; font-weight: 600; color: #64748b; padding: 8px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }}
@@ -3415,7 +3416,7 @@ def write_html_dashboard(
         /* Drilldown drawer */
         .hidden {{ display: none; }}
         .detail-backdrop {{ position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 999; }}
-        .detail-panel {{ position: fixed; left: 0; right: 0; bottom: 0; height: 80vh; background: #fff; border-top-left-radius: 12px; border-top-right-radius: 12px; box-shadow: 0 -4px 14px rgba(0,0,0,0.08); z-index: 1000; display: flex; flex-direction: column; }}
+        .detail-panel {{ position: fixed; left: 0; right: 0; bottom: 0; height: 58vh; background: #fff; border-top-left-radius: 12px; border-top-right-radius: 12px; box-shadow: 0 -4px 14px rgba(0,0,0,0.08); z-index: 1000; display: flex; flex-direction: column; }}
         .detail-panel.hidden, .detail-backdrop.hidden {{ display: none !important; }}
         .detail-header {{ display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid #e9ecf3; }}
         .detail-header h3 {{ margin: 0; font-size: 16px; }}
@@ -3423,110 +3424,31 @@ def write_html_dashboard(
         .detail-body {{ flex: 1; overflow: auto; padding: 12px; }}
         #detailTable {{ width: 100%; border-collapse: collapse; }}
         #detailTable th, #detailTable td {{ padding: 6px 8px; border-bottom: 1px solid #e9ecf3; font-size: 13px; }}
-        
-        /* AI Chatbox */
-        .ai-chat-btn {{
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            width: 56px;
-            height: 56px;
-            border-radius: 28px;
-            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            cursor: pointer;
-            z-index: 2000;
-            transition: transform 0.2s;
-        }}
-        .ai-chat-btn:hover {{ transform: scale(1.05); }}
-        
-        .ai-chat-panel {{
-            position: fixed;
-            bottom: 90px;
-            right: 24px;
-            width: 360px;
-            height: 500px;
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-            z-index: 2000;
-            display: flex;
-            flex-direction: column;
-            border: 1px solid #e2e8f0;
-        }}
-        .ai-chat-panel.hidden {{ display: none; }}
-        .ai-chat-header {{
-            padding: 12px 16px;
-            background: #f8fafc;
-            border-bottom: 1px solid #e2e8f0;
-            border-radius: 12px 12px 0 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: 600;
-            color: #334155;
-        }}
-        .ai-chat-body {{
-            flex: 1;
-            padding: 16px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            font-size: 13px;
-        }}
-        .chat-msg {{
-            padding: 8px 12px;
-            border-radius: 8px;
-            max-width: 85%;
-            line-height: 1.5;
-        }}
-        .chat-msg.user {{
-            align-self: flex-end;
-            background: #eff6ff;
-            color: #1e40af;
-            border: 1px solid #dbeafe;
-        }}
-        .chat-msg.ai {{
-            align-self: flex-start;
-            background: #f1f5f9;
-            color: #334155;
-            white-space: pre-wrap;
-            font-family: monospace;
-        }}
-        .ai-chat-input-area {{
-            padding: 12px;
-            border-top: 1px solid #e2e8f0;
-            display: flex;
-            gap: 8px;
-        }}
-        .ai-chat-input {{
-            flex: 1;
-            padding: 8px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            font-size: 13px;
-            outline: none;
-        }}
-        .ai-chat-input:focus {{ border-color: #6366f1; }}
-        .ai-chat-send {{
-            padding: 6px 12px;
-            background: #6366f1;
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-        }}
-        .ai-chat-send:disabled {{ background: #cbd5e1; cursor: not-allowed; }}
     </style>
     <script>
     (function () {{
+        var __ac;
+        function playSound(kind) {{
+            try {{
+                var AC = __ac || (__ac = new (window.AudioContext || window.webkitAudioContext)());
+                var o = AC.createOscillator();
+                var g = AC.createGain();
+                var t = AC.currentTime;
+                var f = 660;
+                if (kind === 'success') f = 880;
+                else if (kind === 'error') f = 220;
+                else if (kind === 'click') f = 660;
+                o.type = 'sine';
+                o.frequency.value = f;
+                g.gain.setValueAtTime(0.001, t);
+                g.gain.exponentialRampToValueAtTime(0.06, t + 0.01);
+                g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+                o.connect(g);
+                g.connect(AC.destination);
+                o.start(t);
+                o.stop(t + 0.2);
+            }} catch (e) {{}}
+        }}
         function getSortValue(cell, method) {{
             if (!cell) {{
                 return method === 'number' ? -Infinity : '';
@@ -3558,6 +3480,7 @@ def write_html_dashboard(
                     return;
                 }}
                 header.addEventListener('click', function () {{
+                    playSound('click');
                     self.sortBy(index, header);
                 }});
             }});
@@ -3636,53 +3559,32 @@ def write_html_dashboard(
                placeholder="🔍 搜索 SKU 名称、订单号、退货单号...">
     </div>
 
-    <div class="summary" id="skuSummary" style="display:none;">
+    <div class="summary" id="skuSummary">
         {sku_push_html}
         {sku_return_html}
         {low_margin_html}
-        <div class="card" style="grid-column: 1 / -1;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3>厂家分析（全库历史表现）</h3>
-                <select id="manufacturerTimeSelect" style="font-size:12px; padding:4px 8px; border-radius:6px; border:1px solid #e2e8f0; margin-right:12px;">
-                    <option value="all">全部时间</option>
-                    <option value="30">近30天</option>
-                    <option value="60" selected>近60天</option>
-                    <option value="90">近90天</option>
-                </select>
-            </div>
+    </div>
+    <div class="card card-wide">
+            <h3>厂家分析（全库历史表现）</h3>
             <p style="margin: 6px 0 10px 0; font-size: 12px; color: #64748b;">
                 依据全库订单按厂家聚合，展示 Top 厂家的订单量、退货率与客单价概览，用于判断供应侧风险与潜力。
             </p>
             <div class="scroll-pane" style="max-height:none; border:none;">
-                <div style="display:block;">
-                    <!-- Chart removed as per request -->
-                    <div style="display:none;">
-                        <div id="manufacturerChart"></div>
-                        <select id="manufacturerMetricSelect"></select>
-                    </div>
-                    
-                    <div>
-                        <table class="mini-table" style="width:100%;">
-                            <thead>
-                                <tr>
-                                    <th>厂家</th>
-                                    <th data-sort-method="number">订单数</th>
-                                    <th>趋势</th>
-                                    <th data-sort-method="number">总销售额</th>
-                                    <th data-sort-method="number">退货率</th>
-                                    <th data-sort-method="number">毛利率</th>
-                                    <th>风险标签</th>
-                                </tr>
-                            </thead>
-                            <tbody id="manufacturerSummaryBody">
-                                <!-- 将由前端脚本注入 Top 厂家明细 -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <table class="mini-table">
+                    <thead>
+                        <tr>
+                            <th>厂家</th>
+                            <th data-sort-method="number">订单数</th>
+                            <th data-sort-method="number">退货率</th>
+                            <th data-sort-method="number">客单价</th>
+                        </tr>
+                    </thead>
+                    <tbody id="manufacturerSummaryBody">
+                        <!-- 将由前端脚本注入 Top 厂家明细 -->
+                    </tbody>
+                </table>
             </div>
         </div>
-    </div>
 
     <div class="toolbar">
         <button id="exportCsv">导出今日联系记录 (CSV)</button>
@@ -3902,119 +3804,87 @@ def write_html_dashboard(
     populateSelect(platformFilter, platforms);
 
     // 基于全库订单计算每个厂家的聚合数据
-    var manufacturerList = [];
-    var sortedManufacturers = [];
+    var manufacturerStats = {{}};
+    var nowMs = new Date(todayStr).getTime();
+    var oneMonthMs = 30 * 24 * 60 * 60 * 1000;
+    var twoMonthsMs = 60 * 24 * 60 * 60 * 1000;
 
-    function updateManufacturerData(daysFilter) {{
-        var manufacturerStats = {{}};
-        var nowMs = new Date(todayStr).getTime();
-        var oneMonthMs = 30 * 24 * 60 * 60 * 1000;
-        var twoMonthsMs = 60 * 24 * 60 * 60 * 1000;
-        var filterMs = (daysFilter && daysFilter !== 'all') ? (parseInt(daysFilter) * 24 * 60 * 60 * 1000) : 0;
+    if (typeof globalDetails === 'object' && globalDetails) {{
+        Object.values(globalDetails).forEach(function(customerOrders) {{
+            if (!Array.isArray(customerOrders)) return;
+            customerOrders.forEach(function(order) {{
+                if (!order || typeof order !== 'object') return;
+                var mfr = (order['厂家'] || '').trim();
+                if (!mfr) return;
+                
+                var refundType = String(order['退款类型'] || '').trim();
+                var returnNo = String(order['退货单号'] || '').trim();
+                var orderNo = String(order['订单号'] || '').trim();
+                var payRaw = order['付款金额'];
+                var pay = parseFloat(payRaw);
+                
+                // 优化判定逻辑：排除“取消”和“补”
+                var isCancelOrSupp = /取消|补/.test(refundType) || /取消|补/.test(orderNo);
+                var isReturn = !isCancelOrSupp && (/退/.test(refundType) || (returnNo && returnNo !== '/' && returnNo !== '-' && returnNo.toLowerCase() !== 'none'));
+                
+                var isValidOrder = isFinite(pay) && pay > 0 && !isCancelOrSupp;
 
-        if (typeof globalDetails === 'object' && globalDetails) {{
-            Object.values(globalDetails).forEach(function(customerOrders) {{
-                if (!Array.isArray(customerOrders)) return;
-                customerOrders.forEach(function(order) {{
-                    if (!order || typeof order !== 'object') return;
-                    var mfr = (order['厂家'] || '').trim();
-                    if (!mfr) return;
-                    
-                    // 日期逻辑
-                    var dateStr = order['下单时间'] || order['下单日期'] || order['顾客付款日期'] || order['付款日期'] || '';
-                    var orderMs = 0;
-                    if (dateStr) {{
-                        orderMs = new Date(dateStr).getTime();
-                    }}
-                    
-                    // Time Filter
-                    if (filterMs > 0 && orderMs > 0) {{
-                        if ((nowMs - orderMs) > filterMs) return;
-                    }}
+                // 日期逻辑
+                var dateStr = order['下单时间'] || order['下单日期'] || order['顾客付款日期'] || order['付款日期'] || '';
+                var orderMs = 0;
+                if (dateStr) {{
+                    orderMs = new Date(dateStr).getTime();
+                }}
 
-                    var refundType = String(order['退款类型'] || '').trim();
-                    var returnNo = String(order['退货单号'] || '').trim();
-                    var orderNo = String(order['订单号'] || '').trim();
-                    var payRaw = order['付款金额'];
-                    var pay = parseFloat(payRaw);
-                    var costRaw = order['打款金额'];
-                    var cost = parseFloat(costRaw);
+                if (!manufacturerStats[mfr]) {{
+                    manufacturerStats[mfr] = {{ orders: 0, returns: 0, revenue: 0, orders_1m: 0, orders_2m: 0 }};
+                }}
+                if (isValidOrder) {{
+                    manufacturerStats[mfr].orders += 1;
+                    manufacturerStats[mfr].revenue += Math.max(0, pay);
                     
-                    // 优化判定逻辑：排除“取消”和“补”
-                    var isCancelOrSupp = /取消|补/.test(refundType) || /取消|补/.test(orderNo);
-                    var isReturn = !isCancelOrSupp && (/退/.test(refundType) || (returnNo && returnNo !== '/' && returnNo !== '-' && returnNo.toLowerCase() !== 'none'));
-                    
-                    var isValidOrder = isFinite(pay) && pay > 0 && !isCancelOrSupp;
-
-                    if (!manufacturerStats[mfr]) {{
-                        manufacturerStats[mfr] = {{ orders: 0, returns: 0, revenue: 0, cost: 0, validMarginRevenue: 0, validMarginCost: 0, orders_1m: 0, orders_2m: 0 }};
-                    }}
-                    if (isValidOrder) {{
-                        manufacturerStats[mfr].orders += 1;
-                        manufacturerStats[mfr].revenue += Math.max(0, pay);
-                        if (isFinite(cost) && cost > 0) {{
-                            manufacturerStats[mfr].cost += cost;
-                            manufacturerStats[mfr].validMarginRevenue += Math.max(0, pay);
-                            manufacturerStats[mfr].validMarginCost += cost;
+                    if (orderMs > 0) {{
+                        var diff = nowMs - orderMs;
+                        if (diff <= oneMonthMs) {{
+                            manufacturerStats[mfr].orders_1m += 1;
                         }}
-                        
-                        if (orderMs > 0) {{
-                            var diff = nowMs - orderMs;
-                            if (diff <= oneMonthMs) {{
-                                manufacturerStats[mfr].orders_1m += 1;
-                            }}
-                            if (diff <= twoMonthsMs) {{
-                                manufacturerStats[mfr].orders_2m += 1;
-                            }}
-                        }}
-                        
-                        if (isReturn) {{
-                            manufacturerStats[mfr].returns += 1;
+                        if (diff <= twoMonthsMs) {{
+                            manufacturerStats[mfr].orders_2m += 1;
                         }}
                     }}
-                }});
+                    
+                    if (isReturn) {{
+                        manufacturerStats[mfr].returns += 1;
+                    }}
+                }}
             }});
-        }}
-
-        manufacturerList = Object.keys(manufacturerStats).map(function(name) {{
-            var stat = manufacturerStats[name] || {{}};
-            var orders = stat.orders || 0;
-            var returns = stat.returns || 0;
-            var revenue = stat.revenue || 0;
-            var cost = stat.cost || 0;
-            var returnRate = orders > 0 ? Math.min(1, Math.max(0, returns / orders)) : 0;
-            var aov = orders > 0 ? revenue / orders : 0;
-            var validMarginRevenue = stat.validMarginRevenue || 0;
-            var validMarginCost = stat.validMarginCost || 0;
-            var margin = validMarginRevenue > 0 ? (validMarginRevenue - validMarginCost) / validMarginRevenue : 0;
-            var trend = stat.orders_1m - (stat.orders_2m - stat.orders_1m);
-
-            return {{ 
-                name: name, 
-                orders: orders, 
-                returns: returns, 
-                revenue: revenue, 
-                cost: cost,
-                returnRate: returnRate, 
-                aov: aov,
-                margin: margin,
-                trend: trend,
-                orders_1m: stat.orders_1m,
-                orders_2m: stat.orders_2m
-            }};
-        }}).filter(function(m) {{
-            // Relaxed filter: Show any manufacturer with at least 1 total order if filtering by short time
-            var threshold = (filterMs > 0 && filterMs <= oneMonthMs) ? 1 : 5;
-            return m.orders >= threshold;
-        }}).sort(function(a, b) {{
-            return b.orders - a.orders;
         }});
-        
-        sortedManufacturers = manufacturerList.map(function(m) {{ return m.name; }});
     }}
-    
-    // Initial Load
-    updateManufacturerData('60');
+
+    var manufacturerList = Object.keys(manufacturerStats).map(function(name) {{
+        var stat = manufacturerStats[name] || {{}};
+        var orders = stat.orders || 0;
+        var returns = stat.returns || 0;
+        var revenue = stat.revenue || 0;
+        var returnRate = orders > 0 ? Math.min(1, Math.max(0, returns / orders)) : 0;
+        var aov = orders > 0 ? revenue / orders : 0;
+        return {{ 
+            name: name, 
+            orders: orders, 
+            returns: returns, 
+            revenue: revenue, 
+            returnRate: returnRate, 
+            aov: aov,
+            orders_1m: stat.orders_1m,
+            orders_2m: stat.orders_2m
+        }};
+    }}).filter(function(m) {{
+        return m.orders_1m >= 1 && m.orders_2m >= 5;
+    }}).sort(function(a, b) {{
+        return b.orders - a.orders;
+    }});
+
+    var sortedManufacturers = manufacturerList.map(function(m) {{ return m.name; }});
     populateSelect(manufacturerFilter, sortedManufacturers);
 
     (function renderManufacturerAnalytics() {{
@@ -4023,9 +3893,8 @@ def write_html_dashboard(
             var chartContainer = document.getElementById('manufacturerChart');
             var tableBody = document.getElementById('manufacturerSummaryBody');
             var metricSelect = document.getElementById('manufacturerMetricSelect');
-            var container = chartContainer ? chartContainer.parentElement : null;
-            
-            if (!chartContainer || !tableBody || !metricSelect || !container) {{
+            var container = (chartContainer && chartContainer.parentElement) || (tableBody && tableBody.parentElement) || null;
+            if (!tableBody) {{
                 return;
             }}
             
@@ -4043,7 +3912,7 @@ def write_html_dashboard(
                 container.appendChild(detailsContainer);
             }}
 
-            var MAX_BARS = 50; // Increased limit to show more manufacturers
+            var MAX_BARS = 10;
 
             function getSortedByMetric(metric) {{
                 var data = manufacturerList.slice();
@@ -4063,79 +3932,13 @@ def write_html_dashboard(
                 return data.slice(0, MAX_BARS);
             }}
             
-            var currentSkuFilter = null;
-            
-            window.toggleSkuFilter = function(sku, el) {{
-                var table = document.getElementById('detailTable');
-                if (!table) return;
-                
-                if (currentSkuFilter === sku) {{
-                    currentSkuFilter = null;
-                }} else {{
-                    currentSkuFilter = sku;
-                }}
-                
-                var diagDiv = document.getElementById('mfrDiagnosis');
-                if (diagDiv) {{
-                    var badges = diagDiv.querySelectorAll('span[onclick]');
-                    badges.forEach(function(b) {{
-                        b.style.boxShadow = 'none';
-                        b.style.background = 'rgba(255,255,255,0.7)';
-                    }});
-                }}
-                
-                if (currentSkuFilter && el) {{
-                    el.style.boxShadow = '0 0 0 2px #3b82f6';
-                    el.style.background = '#fff';
-                }}
-                
-                var tbody = table.querySelector('tbody');
-                if (tbody) {{
-                    var rows = Array.from(tbody.querySelectorAll('tr'));
-                    rows.forEach(function(row) {{
-                        if (!currentSkuFilter) {{
-                            row.style.display = '';
-                        }} else {{
-                            var skuCell = row.children[2];
-                            var rowSku = skuCell ? skuCell.textContent.trim() : '';
-                            if (rowSku.indexOf(currentSkuFilter) !== -1) {{
-                                row.style.display = '';
-                            }} else {{
-                                row.style.display = 'none';
-                            }}
-                        }}
-                    }});
-                }}
-            }};
-
-            window.toggleAiContent = function(header) {{
-                var content = header.nextElementSibling;
-                var icon = header.querySelector('.fa-chevron-up, .fa-chevron-down');
-                if (content.style.display === 'none') {{
-                    content.style.display = 'block';
-                    if (icon) {{
-                        icon.className = 'fa-solid fa-chevron-up';
-                    }}
-                }} else {{
-                    content.style.display = 'none';
-                    if (icon) {{
-                        icon.className = 'fa-solid fa-chevron-down';
-                    }}
-                }}
-            }};
-
             function showManufacturerDetails(mfrName) {{
-                currentSkuFilter = null;
                 const rows = [];
                 // Statistics for diagnosis
                 const skuStats = {{}};
-                // Date Filter: Respect global selection
-                var timeSelect = document.getElementById('manufacturerTimeSelect');
-                var days = timeSelect ? timeSelect.value : '60';
-                var filterMs = (days && days !== 'all') ? (parseInt(days) * 24 * 60 * 60 * 1000) : 0;
-                var nowMs = new Date().getTime();
-                const cutoffTime = filterMs > 0 ? (nowMs - filterMs) : 0;
-                var timeLabel = (days === 'all') ? '全部时间' : ('近' + days + '天');
+                // Date Filter: Last 60 days cutoff
+                const now = new Date();
+                const cutoffTime = now.getTime() - (60 * 24 * 60 * 60 * 1000);
 
                 if (typeof globalDetails === 'object' && globalDetails) {{
                     Object.values(globalDetails).forEach(function(customerOrders) {{
@@ -4225,7 +4028,7 @@ def write_html_dashboard(
                 }});
 
                 // Reuse global detail panel elements
-                if (detailTitle) detailTitle.innerHTML = mfrName + ' - 厂家订单明细 <span style="font-size:0.8em; color:#64748b; font-weight:normal;">(' + timeLabel + ': ' + rows.length + ' 条)</span>';
+                if (detailTitle) detailTitle.innerHTML = mfrName + ' - 厂家订单明细 <span style="font-size:0.8em; color:#64748b; font-weight:normal;">(近60天: ' + rows.length + ' 条)</span>';
                 
                 // Inject Diagnosis Panel
                 // Check if we already have a diagnosis container, if not create one before the table container
@@ -4247,19 +4050,17 @@ def write_html_dashboard(
                     diagHtml += '</div>';
                     
                     if (highReturnSkus.length > 0) {{
-                        diagHtml += '<div style="margin-bottom:10px;">';
-                        diagHtml += '<div style="margin-bottom:6px;"><span style="background:#e11d48; color:white; padding:2px 6px; border-radius:4px; font-size:11px;">高退货风险</span></div>';
-                        diagHtml += '<div style="display:flex; flex-wrap:wrap; gap:6px;">';
-                        diagHtml += highReturnSkus.map(i => `<span onclick="toggleSkuFilter('${{i.sku}}', this)" style="cursor:pointer; background:rgba(255,255,255,0.7); border:1px solid #fb7185; padding:3px 8px; border-radius:4px; display:flex; align-items:center; gap:4px;" title="点击筛选/取消筛选该货品"><b>${{i.sku}}</b> <span style="font-size:11px; color:#9f1239;">${{(i.rate*100).toFixed(0)}}%</span></span>`).join('');
-                        diagHtml += '</div></div>';
+                        diagHtml += '<div style="margin-bottom:6px;">';
+                        diagHtml += '<span style="background:#e11d48; color:white; padding:2px 6px; border-radius:4px; font-size:11px; margin-right:6px;">高退货风险</span>';
+                        diagHtml += highReturnSkus.map(i => `<b>${{i.sku}}</b> (${{(i.rate*100).toFixed(0)}}%退货)`).join('、');
+                        diagHtml += '</div>';
                     }}
                     
                     if (lowMarginSkus.length > 0) {{
                         diagHtml += '<div>';
-                        diagHtml += '<div style="margin-bottom:6px;"><span style="background:#f59e0b; color:white; padding:2px 6px; border-radius:4px; font-size:11px;">低毛利预警</span></div>';
-                        diagHtml += '<div style="display:flex; flex-wrap:wrap; gap:6px;">';
-                        diagHtml += lowMarginSkus.map(i => `<span onclick="toggleSkuFilter('${{i.sku}}', this)" style="cursor:pointer; background:rgba(255,255,255,0.7); border:1px solid #fbbf24; padding:3px 8px; border-radius:4px; display:flex; align-items:center; gap:4px;" title="点击筛选/取消筛选该货品"><b>${{i.sku}}</b> <span style="font-size:11px; color:#92400e;">${{(i.margin*100).toFixed(0)}}%</span></span>`).join('');
-                        diagHtml += '</div></div>';
+                        diagHtml += '<span style="background:#f59e0b; color:white; padding:2px 6px; border-radius:4px; font-size:11px; margin-right:6px;">低毛利预警</span>';
+                        diagHtml += lowMarginSkus.map(i => `<b>${{i.sku}}</b> (毛利${{(i.margin*100).toFixed(0)}}%)`).join('、');
+                        diagHtml += '</div>';
                     }}
                     diagHtml += '</div>';
                 }} else if (rows.length > 0) {{
@@ -4282,10 +4083,9 @@ def write_html_dashboard(
                 const renderAiHtml = (content) => {{
                     return '<div style="background:linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border:1px solid #c4b5fd; border-radius:8px; padding:15px; position:relative; overflow:hidden;">' +
                         '<div style="position:absolute; right:-10px; top:-10px; opacity:0.1;"><i class="fa-solid fa-brain" style="font-size:60px; color:#7c3aed;"></i></div>' +
-                        '<div onclick="toggleAiContent(this)" style="cursor:pointer; font-weight:bold; color:#6d28d9; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;">' +
-                        '<div style="display:flex; align-items:center;">' +
+                        '<div style="font-weight:bold; color:#6d28d9; margin-bottom:10px; display:flex; align-items:center;">' +
                         '<span style="background:#7c3aed; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-right:8px; font-size:12px;">AI</span>' +
-                        'DeepSeek 深度运营策略：</div><i class="fa-solid fa-chevron-up"></i></div>' +
+                        'DeepSeek 深度运营策略：</div>' +
                         '<div style="font-size:13.5px; line-height:1.6; color:#4c1d95; white-space:pre-wrap;">' + content + '</div>' +
                         '</div>';
                 }};
@@ -4386,25 +4186,39 @@ def write_html_dashboard(
                         }};
 
                         const cols = [
+                            r['姓名'] || '',
+                            r['手机号'] || '',
                             (r['下单时间'] || ''),
-                            (r['姓名'] || '') + '<br><span style="color:#64748b;font-size:12px">' + (r['手机号'] || '') + '</span>',
-                            (r['商品名称'] || r['货品名'] || '') + '<br><span style="color:#64748b;font-size:12px">' + (r['颜色'] || '') + ' ' + (r['尺码'] || '') + '</span>',
-                            '<div style="display:flex; flex-direction:column; align-items:flex-end;"><span>' + formatA(paymentAmt) + ' / ' + formatA(costAmt) + '</span><span style="font-weight:bold; color:' + (parseFloat(calcM(paymentAmt, costAmt)) < 15 ? '#f59e0b' : '#10b981') + '">' + calcM(paymentAmt, costAmt) + '</span></div>',
-                            (r['订单号'] || '') + (r['退货单号'] ? '<br><span style="color:#ef4444; font-size:12px">退: ' + r['退货单号'] + '</span>' : ''),
-                            (r['退款类型'] || '') + (r['退款原因'] ? '<br><span style="color:#64748b; font-size:12px">' + r['退款原因'] + '</span>' : '')
+                            r['下单平台'] || '',
+                            r['厂家'] || '',
+                            (r['商品名称'] || r['货品名'] || ''),
+                            r['颜色'] || r['色号'] || '',
+                            r['尺码'] || r['规格'] || r['码数'] || '',
+                            formatA(paymentAmt),
+                            formatA(costAmt),
+                            calcM(paymentAmt, costAmt),
+                            r['订单号'] || '',
+                            r['退货单号'] || '',
+                            r['退款类型'] || '',
+                            r['退款原因'] || ''
                         ];
                         
-                        cols.forEach(function(html, i) {{
+                        cols.forEach(function(text, i) {{
                             const td = document.createElement('td');
-                            if (i === 0) {{
-                                const digits = String(html).replace(/\D/g, '');
+                            // Add sorting attributes
+                            if (i === 2) {{ // Date
+                                const digits = String(text).replace(/\D/g, '');
                                 if (digits.length >= 8) {{ td.setAttribute('data-sort-value', digits.slice(0,8)); }}
-                            }} else if (i === 3) {{
-                                const mNum = parseFloat(calcM(paymentAmt, costAmt));
-                                if (isFinite(mNum)) td.setAttribute('data-sort-value', String(mNum));
-                                td.style.textAlign = 'right';
+                            }} else if (i === 8 || i === 9) {{ // Amounts
+                                const val = parseFloat(text);
+                                if (isFinite(val)) td.setAttribute('data-sort-value', String(val));
+                            }} else if (i === 10) {{ // Margin
+                                const marginText = String(text).replace('%', '');
+                                const val = parseFloat(marginText);
+                                if (isFinite(val)) td.setAttribute('data-sort-value', String(val));
                             }}
-                            td.innerHTML = html;
+                            
+                            td.textContent = text;
                             tr.appendChild(td);
                         }});
                         frag.appendChild(tr);
@@ -4425,99 +4239,84 @@ def write_html_dashboard(
 
             function renderChart(metric) {{
                 var data = getSortedByMetric(metric);
-                chartContainer.innerHTML = '';
+                if (chartContainer) {{ chartContainer.innerHTML = ''; }}
                 
                 if (!data.length) {{
-                    chartContainer.innerHTML = '<div style="color:#94a3b8; font-size:12px; text-align:center; padding-top:40px;">暂无足够的厂家订单数据</div>';
-                    tableBody.innerHTML = '';
+                    if (chartContainer) {{
+                        chartContainer.innerHTML = '<div style="color:#94a3b8; font-size:12px; text-align:center; padding-top:40px;">暂无足够的厂家订单数据</div>';
+                    }}
+                    if (tableBody) {{ tableBody.innerHTML = ''; }}
                     return;
                 }}
 
-                var maxValue = 0;
-                if (metric === 'return_rate') {{
-                    // For return rate, stick to a fixed max or slightly above max
-                    maxValue = Math.max.apply(null, data.map(function(d){{ return d.returnRate; }})); 
-                    maxValue = Math.max(0.5, maxValue); // Minimum 50% scale
-                }} else if (metric === 'aov') {{
-                    maxValue = Math.max.apply(null, data.map(function(d){{ return d.aov; }}));
-                }} else {{
-                    maxValue = Math.max.apply(null, data.map(function(d){{ return d.orders; }}));
-                }}
-
-                var fragChart = document.createDocumentFragment();
-
-                data.forEach(function(d, idx) {{
-                    var val = 0;
-                    var label = '';
-                    var barColor = '#3b82f6'; // Default Blue
-                    
+                // 如果没有图容器，跳过图渲染，仅填充表格
+                if (chartContainer) {{
+                    var maxValue = 0;
                     if (metric === 'return_rate') {{
-                        val = d.returnRate;
-                        label = (d.returnRate * 100).toFixed(1) + '%';
-                        // Red > Orange > Green logic
-                        barColor = val > 0.35 ? '#ef4444' : (val > 0.20 ? '#f59e0b' : '#10b981');
+                        maxValue = Math.max.apply(null, data.map(function(d){{ return d.returnRate; }})); 
+                        maxValue = Math.max(0.5, maxValue);
                     }} else if (metric === 'aov') {{
-                        val = d.aov;
-                        label = '¥' + d.aov.toFixed(0);
-                        barColor = '#8b5cf6'; // Violet
+                        maxValue = Math.max.apply(null, data.map(function(d){{ return d.aov; }}));
                     }} else {{
-                        val = d.orders;
-                        label = d.orders + ' 单';
-                        barColor = '#0ea5e9'; // Sky
+                        maxValue = Math.max.apply(null, data.map(function(d){{ return d.orders; }}));
                     }}
-
-                    var pct = maxValue ? (val / maxValue) * 100 : 0;
-                    
-                    // Row Container (Clickable)
-                    var rowDiv = document.createElement('div');
-                    rowDiv.style.marginBottom = '12px';
-                    rowDiv.style.cursor = 'pointer';
-                    rowDiv.title = '点击查看详情';
-                    rowDiv.onclick = function() {{ showManufacturerDetails(d.name); }};
-                    
-                    // Label Row
-                    var labelDiv = document.createElement('div');
-                    labelDiv.style.display = 'flex';
-                    labelDiv.style.justifyContent = 'space-between';
-                    labelDiv.style.fontSize = '12px';
-                    labelDiv.style.marginBottom = '4px';
-                    labelDiv.style.color = '#64748b';
-                    
-                    var nameSpan = document.createElement('span');
-                    nameSpan.textContent = (idx + 1) + '. ' + d.name;
-                    nameSpan.style.fontWeight = '600';
-                    nameSpan.style.color = '#334155';
-                    
-                    var valSpan = document.createElement('span');
-                    valSpan.textContent = label;
-                    valSpan.style.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
-                    
-                    labelDiv.appendChild(nameSpan);
-                    labelDiv.appendChild(valSpan);
-                    
-                    // Bar Track
-                    var trackDiv = document.createElement('div');
-                    trackDiv.style.height = '6px';
-                    trackDiv.style.background = '#f1f5f9';
-                    trackDiv.style.borderRadius = '3px';
-                    trackDiv.style.overflow = 'hidden';
-                    
-                    // Bar Fill
-                    var fillDiv = document.createElement('div');
-                    fillDiv.style.width = pct + '%';
-                    fillDiv.style.height = '100%';
-                    fillDiv.style.background = barColor;
-                    fillDiv.style.borderRadius = '3px';
-                    fillDiv.style.transition = 'width 0.5s ease-out';
-                    
-                    trackDiv.appendChild(fillDiv);
-                    rowDiv.appendChild(labelDiv);
-                    rowDiv.appendChild(trackDiv);
-                    
-                    fragChart.appendChild(rowDiv);
-                }});
-                
-                chartContainer.appendChild(fragChart);
+                    var fragChart = document.createDocumentFragment();
+                    data.forEach(function(d, idx) {{
+                        var val = 0;
+                        var label = '';
+                        var barColor = '#3b82f6';
+                        if (metric === 'return_rate') {{
+                            val = d.returnRate;
+                            label = (d.returnRate * 100).toFixed(1) + '%';
+                            barColor = val > 0.35 ? '#ef4444' : (val > 0.20 ? '#f59e0b' : '#10b981');
+                        }} else if (metric === 'aov') {{
+                            val = d.aov;
+                            label = '¥' + d.aov.toFixed(0);
+                            barColor = '#8b5cf6';
+                        }} else {{
+                            val = d.orders;
+                            label = d.orders + ' 单';
+                            barColor = '#0ea5e9';
+                        }}
+                        var pct = maxValue ? (val / maxValue) * 100 : 0;
+                        var rowDiv = document.createElement('div');
+                        rowDiv.style.marginBottom = '12px';
+                        rowDiv.style.cursor = 'pointer';
+                        rowDiv.title = '点击查看详情';
+                        rowDiv.onclick = function() {{ showManufacturerDetails(d.name); }};
+                        var labelDiv = document.createElement('div');
+                        labelDiv.style.display = 'flex';
+                        labelDiv.style.justifyContent = 'space-between';
+                        labelDiv.style.fontSize = '12px';
+                        labelDiv.style.marginBottom = '4px';
+                        labelDiv.style.color = '#64748b';
+                        var nameSpan = document.createElement('span');
+                        nameSpan.textContent = (idx + 1) + '. ' + d.name;
+                        nameSpan.style.fontWeight = '600';
+                        nameSpan.style.color = '#334155';
+                        var valSpan = document.createElement('span');
+                        valSpan.textContent = label;
+                        valSpan.style.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+                        labelDiv.appendChild(nameSpan);
+                        labelDiv.appendChild(valSpan);
+                        var trackDiv = document.createElement('div');
+                        trackDiv.style.height = '6px';
+                        trackDiv.style.background = '#f1f5f9';
+                        trackDiv.style.borderRadius = '3px';
+                        trackDiv.style.overflow = 'hidden';
+                        var fillDiv = document.createElement('div');
+                        fillDiv.style.width = pct + '%';
+                        fillDiv.style.height = '100%';
+                        fillDiv.style.background = barColor;
+                        fillDiv.style.borderRadius = '3px';
+                        fillDiv.style.transition = 'width 0.5s ease-out';
+                        trackDiv.appendChild(fillDiv);
+                        rowDiv.appendChild(labelDiv);
+                        rowDiv.appendChild(trackDiv);
+                        fragChart.appendChild(rowDiv);
+                    }});
+                    chartContainer.appendChild(fragChart);
+                }}
 
                 // Render Table (re-use the same data sorted by metric)
                 tableBody.innerHTML = '';
@@ -4532,49 +4331,29 @@ def write_html_dashboard(
 
                     var rrPct = (d.returnRate * 100).toFixed(1) + '%';
                     var aovVal = d.aov.toFixed(2);
-                    var revVal = '¥' + d.revenue.toLocaleString('en-US', {{minimumFractionDigits: 0, maximumFractionDigits: 0}});
-                    var marginPct = (d.margin * 100).toFixed(1) + '%';
-                    
                     var cols = [
                         d.name,
                         String(d.orders),
-                        String(d.trend),
-                        revVal,
                         rrPct,
-                        marginPct,
-                        ''
+                        '¥' + aovVal
                     ];
                     
                     cols.forEach(function(text, idx) {{
                         var td = document.createElement('td');
                         if (idx === 1) {{ // Orders
                             td.setAttribute('data-sort-value', String(d.orders));
+                            // Simple text for table since chart is right there
                             td.innerHTML = '<span style="font-weight:600; color:#334155;">' + text + '</span>';
-                        }} else if (idx === 2) {{ // Trend
-                            td.setAttribute('data-sort-value', String(d.trend));
-                            var color = d.trend > 0 ? '#ef4444' : (d.trend < 0 ? '#10b981' : '#94a3b8');
-                            var arrow = d.trend > 0 ? '⬆️' : (d.trend < 0 ? '⬇️' : '➖');
-                            td.innerHTML = '<span style="color:' + color + '; font-weight:bold;">' + arrow + '</span>';
-                        }} else if (idx === 3) {{ // Revenue
-                            td.setAttribute('data-sort-value', String(d.revenue));
-                            td.style.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
-                            td.textContent = text;
-                        }} else if (idx === 4) {{ // Return Rate
+                        }} else if (idx === 2) {{ // Return Rate
                             td.setAttribute('data-sort-value', String(d.returnRate));
                             var rrVal = d.returnRate;
                             var color = rrVal > 0.35 ? '#ef4444' : (rrVal > 0.20 ? '#f59e0b' : '#10b981');
                             td.innerHTML = '<span style="color:' + color + '; font-weight:600;">' + text + '</span>';
-                        }} else if (idx === 5) {{ // Margin
-                            td.setAttribute('data-sort-value', String(d.margin));
-                            var mVal = d.margin;
-                            var color = mVal < 0.15 ? '#f59e0b' : '#334155';
-                            td.innerHTML = '<span style="color:' + color + ';">' + text + '</span>';
-                        }} else if (idx === 6) {{ // Risk Label
-                             var tags = [];
-                             if (d.returnRate > 0.30) tags.push('<span style="color:#ef4444; background:#fee2e2; padding:2px 6px; border-radius:4px; font-size:11px; margin-right:4px;">高退货</span>');
-                             if (d.margin < 0.15) tags.push('<span style="color:#f59e0b; background:#fef3c7; padding:2px 6px; border-radius:4px; font-size:11px; margin-right:4px;">低毛利</span>');
-                             if (d.returnRate < 0.20 && d.margin > 0.25) tags.push('<span style="color:#10b981; background:#d1fae5; padding:2px 6px; border-radius:4px; font-size:11px;">优质</span>');
-                             td.innerHTML = tags.join('');
+                        }} else if (idx === 3) {{ // AOV
+                            td.setAttribute('data-sort-value', String(d.aov));
+                            td.className = 'num';
+                            td.style.color = '#64748b';
+                            td.textContent = text;
                         }} else {{ // Name
                             td.textContent = text;
                             td.style.fontWeight = '500';
@@ -4587,20 +4366,13 @@ def write_html_dashboard(
                 tableBody.appendChild(fragTable);
             }}
 
-            var initialMetric = metricSelect.value || 'return_rate';
+            var initialMetric = (metricSelect && metricSelect.value) || 'return_rate';
             renderChart(initialMetric);
-
-            var timeSelect = document.getElementById('manufacturerTimeSelect');
-            if (timeSelect) {{
-                timeSelect.addEventListener('change', function() {{
-                    updateManufacturerData(this.value);
+            if (metricSelect) {{
+                metricSelect.addEventListener('change', function() {{
                     renderChart(metricSelect.value || 'return_rate');
                 }});
             }}
-
-            metricSelect.addEventListener('change', function() {{
-                renderChart(metricSelect.value || 'return_rate');
-            }});
         }} catch (e) {{
             console.warn('厂家分析渲染失败:', e);
         }}
@@ -4722,32 +4494,7 @@ def write_html_dashboard(
     }}
 
     function applyFilters() {{
-        const opsSearch = document.getElementById('operationsSearchBox');
-        const opsContainer = document.querySelector('.operations-search-container');
-        let searchRaw = '';
-        let isOpsMode = false;
-        
-        if (opsContainer && opsContainer.classList.contains('active') && opsSearch) {{
-            searchRaw = opsSearch.value.trim();
-            isOpsMode = true;
-        }} else if (searchBox) {{
-            searchRaw = searchBox.value.trim();
-        }}
-        const search = searchRaw.toLowerCase();
-
-        // Ops Mode: Toggle Summary/Table based on search
-        if (isOpsMode) {{
-            const summary = document.querySelector('.summary');
-            if (!search) {{
-                if (summary) summary.style.display = 'grid';
-                if (table) table.style.display = 'none';
-                return;
-            }} else {{
-                if (summary) summary.style.display = 'none';
-                if (table) table.style.display = 'table';
-            }}
-        }}
-
+        const search = searchBox ? searchBox.value.trim().toLowerCase() : '';
         const priority = priorityFilter ? priorityFilter.value : '';
         const tag = tagFilter ? tagFilter.value : '';
         const platform = platformFilter ? platformFilter.value : '';
@@ -4794,7 +4541,7 @@ def write_html_dashboard(
         let addedSynthetic = false;
         if (tbody) {{
             const hasVisible = visible > 0;
-            // Use searchRaw from outer scope
+            const searchRaw = searchBox ? searchBox.value.trim() : '';
             if (!hasVisible && searchRaw) {{
                 const _key = resolveGlobalKey(searchRaw);
                 if (_key && globalDetails && globalDetails[_key]) {{
@@ -5144,7 +4891,7 @@ def write_html_dashboard(
             }}
         }}
 
-        // Use global searchRaw
+        const searchRaw = searchBox ? searchBox.value.trim() : '';
         if (searchRaw && searchRaw.length >= 2 && productSearchIndex && typeof productSearchIndex === 'object') {{
             const normalized = normAlphaNum(searchRaw);
             let isProductSearch = false;
@@ -5491,6 +5238,7 @@ def write_html_dashboard(
 
         const entries = Object.values(todayEntries);
         if (!entries.length) {{
+            playSound('error');
             alert('当前没有可导出的联系记录。');
             return;
         }}
@@ -5518,6 +5266,7 @@ def write_html_dashboard(
         URL.revokeObjectURL(url);
 
         // 显示导出统计
+        playSound('success');
         alert(`成功导出 ${{entries.length}} 条今日联系记录`);
     }}
 
@@ -5534,6 +5283,7 @@ def write_html_dashboard(
             setRowState(checkbox.closest('tr'), false);
         }});
         persistFollowupMap();
+        playSound('success');
     }}
 
     if (exportBtn) {{
@@ -5564,12 +5314,21 @@ def write_html_dashboard(
         <table id="detailTable">
           <thead>
             <tr>
+              <th>姓名</th>
+              <th>手机号</th>
               <th data-sort-method="number">下单时间</th>
-              <th>客户信息</th>
-              <th>货品信息</th>
-              <th data-sort-method="number">金额/毛利</th>
-              <th>订单/退货号</th>
-              <th>售后状态</th>
+              <th>下单平台</th>
+              <th>厂家</th>
+              <th>货品名</th>
+              <th>颜色</th>
+              <th>尺码</th>
+              <th data-sort-method="number">付款金额</th>
+              <th data-sort-method="number">打款金额</th>
+              <th data-sort-method="number">毛利率</th>
+              <th>订单号</th>
+              <th>退货单号</th>
+              <th>退款类型</th>
+              <th>退款原因</th>
             </tr>
           </thead>
           <tbody id="detailTbody"></tbody>
@@ -5611,12 +5370,6 @@ def write_html_dashboard(
     }}
 
     function openDetailForKey(key, name) {{
-      // Hide Manufacturer specific panels
-      var diagPanel = document.getElementById('mfrDiagnosis');
-      if (diagPanel) diagPanel.remove();
-      var aiPanel = document.getElementById('mfrAiAnalysis');
-      if (aiPanel) aiPanel.remove();
-
       let rows = (detailMap && detailMap[key]) ? detailMap[key] : [];
       if (!rows.length && globalDetails && globalDetails[key]) {{
         rows = globalDetails[key];
@@ -5645,24 +5398,37 @@ def write_html_dashboard(
           const paymentAmt = r['付款金额'];
           const costAmt = r['打款金额'];
           const cols = [
+            r['姓名'] || '',
+            r['手机号'] || '',
             (r['下单时间'] || ''),
-            (r['姓名'] || '') + '<br><span style="color:#64748b;font-size:12px">' + (r['手机号'] || '') + '</span>',
-            (r['商品名称'] || r['货品名'] || '') + '<br><span style="color:#64748b;font-size:12px">' + (r['颜色'] || '') + ' ' + (r['尺码'] || '') + '</span>',
-            '<div style="display:flex; flex-direction:column; align-items:flex-end;"><span>' + formatAmount(paymentAmt) + ' / ' + formatAmount(costAmt) + '</span><span style="font-weight:bold; color:' + (parseFloat(calcMargin(paymentAmt, costAmt)) < 15 ? '#f59e0b' : '#10b981') + '">' + calcMargin(paymentAmt, costAmt) + '</span></div>',
-            (r['订单号'] || '') + (r['退货单号'] ? '<br><span style="color:#ef4444; font-size:12px">退: ' + r['退货单号'] + '</span>' : ''),
-            (r['退款类型'] || '') + (r['退款原因'] ? '<br><span style="color:#64748b; font-size:12px">' + r['退款原因'] + '</span>' : '')
+            r['下单平台'] || '',
+            r['厂家'] || '',
+            (r['商品名称'] || r['货品名'] || ''),
+            r['颜色'] || r['色号'] || '',
+            r['尺码'] || r['规格'] || r['码数'] || '',
+            formatAmount(paymentAmt),
+            formatAmount(costAmt),
+            calcMargin(paymentAmt, costAmt),
+            r['订单号'] || '',
+            r['退货单号'] || '',
+            r['退款类型'] || '',
+            r['退款原因'] || ''
           ];
-          cols.forEach((html, i) => {{
+          cols.forEach((text, i) => {{
             const td = document.createElement('td');
-            if (i === 0) {{
-              const digits = String(html).replace(/\D/g, '');
+            if (i === 2) {{
+              // 下单时间，ISO 字符串转 YYYYMMDD 数字作为排序键
+              const digits = String(text).replace(/\D/g, '');
               if (digits.length >= 8) {{ td.setAttribute('data-sort-value', digits.slice(0,8)); }}
-            }} else if (i === 3) {{
-              const mNum = parseFloat(calcMargin(paymentAmt, costAmt));
-              if (isFinite(mNum)) td.setAttribute('data-sort-value', String(mNum));
-              td.style.textAlign = 'right';
+            }} else if (i === 8 || i === 9) {{ // 付款金额和打款金额 numeric sort key
+              const val = parseFloat(text);
+              if (isFinite(val)) td.setAttribute('data-sort-value', String(val));
+            }} else if (i === 10) {{ // 毛利率 numeric sort key
+              const marginText = String(text).replace('%', '');
+              const val = parseFloat(marginText);
+              if (isFinite(val)) td.setAttribute('data-sort-value', String(val));
             }}
-            td.innerHTML = html;
+            td.textContent = text;
             tr.appendChild(td);
           }});
           frag.appendChild(tr);
@@ -5674,6 +5440,7 @@ def write_html_dashboard(
       detailBackdrop.classList.remove('hidden');
       panel.classList.remove('hidden');
       panelOpen = true;
+      playSound('click');
     }}
 
     function closeDetail() {{
@@ -5710,12 +5477,6 @@ def write_html_dashboard(
     // SKU 明细抽屉（按货品名汇总展示全量订单）
     // filterType: 'all' | 'normal' | 'proxy'
     function openDetailForSku(sku, filterType) {{
-      // Hide Manufacturer specific panels
-      var diagPanel = document.getElementById('mfrDiagnosis');
-      if (diagPanel) diagPanel.remove();
-      var aiPanel = document.getElementById('mfrAiAnalysis');
-      if (aiPanel) aiPanel.remove();
-
       const rows = [];
       try {{
         Object.values(globalDetails || {{}}).forEach(list => {{
@@ -5762,24 +5523,36 @@ def write_html_dashboard(
           const paymentAmt = r['付款金额'];
           const costAmt = r['打款金额'];
           const cols = [
+            r['姓名'] || '',
+            r['手机号'] || '',
             (r['下单时间'] || ''),
-            (r['姓名'] || '') + '<br><span style="color:#64748b;font-size:12px">' + (r['手机号'] || '') + '</span>',
-            (r['商品名称'] || r['货品名'] || '') + '<br><span style="color:#64748b;font-size:12px">' + (r['颜色'] || '') + ' ' + (r['尺码'] || '') + '</span>',
-            '<div style="display:flex; flex-direction:column; align-items:flex-end;"><span>' + formatAmount(paymentAmt) + ' / ' + formatAmount(costAmt) + '</span><span style="font-weight:bold; color:' + (parseFloat(calcMargin(paymentAmt, costAmt)) < 15 ? '#f59e0b' : '#10b981') + '">' + calcMargin(paymentAmt, costAmt) + '</span></div>',
-            (r['订单号'] || '') + (r['退货单号'] ? '<br><span style="color:#ef4444; font-size:12px">退: ' + r['退货单号'] + '</span>' : ''),
-            (r['退款类型'] || '') + (r['退款原因'] ? '<br><span style="color:#64748b; font-size:12px">' + r['退款原因'] + '</span>' : '')
+            r['下单平台'] || '',
+            r['厂家'] || '',
+            (r['商品名称'] || r['货品名'] || ''),
+            r['颜色'] || r['色号'] || '',
+            r['尺码'] || r['规格'] || r['码数'] || '',
+            formatAmount(paymentAmt),
+            formatAmount(costAmt),
+            calcMargin(paymentAmt, costAmt),
+            r['订单号'] || '',
+            r['退货单号'] || '',
+            r['退款类型'] || '',
+            r['退款原因'] || ''
           ];
-          cols.forEach((html, i) => {{
+          cols.forEach((text, i) => {{
             const td = document.createElement('td');
-            if (i === 0) {{
-              const digits = String(html).replace(/\D/g, '');
+            if (i === 2) {{
+              const digits = String(text).replace(/\D/g, '');
               if (digits.length >= 8) {{ td.setAttribute('data-sort-value', digits.slice(0,8)); }}
-            }} else if (i === 3) {{
-              const mNum = parseFloat(calcMargin(paymentAmt, costAmt));
-              if (isFinite(mNum)) td.setAttribute('data-sort-value', String(mNum));
-              td.style.textAlign = 'right';
+            }} else if (i === 8 || i === 9) {{
+              const val = parseFloat(text);
+              if (isFinite(val)) td.setAttribute('data-sort-value', String(val));
+            }} else if (i === 10) {{ // 毛利率 numeric sort key
+              const marginText = String(text).replace('%', '');
+              const val = parseFloat(marginText);
+              if (isFinite(val)) td.setAttribute('data-sort-value', String(val));
             }}
-            td.innerHTML = html;
+            td.textContent = text;
             tr.appendChild(td);
           }});
           frag.appendChild(tr);
@@ -5794,12 +5567,6 @@ def write_html_dashboard(
 
     // 货品名“包含”查询（全库模糊匹配）
     function openDetailForSkuQuery(queryRaw) {{
-      // Hide Manufacturer specific panels
-      var diagPanel = document.getElementById('mfrDiagnosis');
-      if (diagPanel) diagPanel.remove();
-      var aiPanel = document.getElementById('mfrAiAnalysis');
-      if (aiPanel) aiPanel.remove();
-
       const qn = normAlphaNum(queryRaw || '');
       if (!qn) return;
       const rows = [];
@@ -5888,12 +5655,6 @@ def write_html_dashboard(
     }}
 
     function openDetailForManufacturer(manufacturer) {{
-      // Hide Manufacturer specific panels
-      var diagPanel = document.getElementById('mfrDiagnosis');
-      if (diagPanel) diagPanel.remove();
-      var aiPanel = document.getElementById('mfrAiAnalysis');
-      if (aiPanel) aiPanel.remove();
-
       if (!manufacturer) return;
       const rows = [];
       try {{
@@ -5972,12 +5733,6 @@ def write_html_dashboard(
     }}
 
     function openDetailForPlatform(platform) {{
-      // Hide Manufacturer specific panels
-      var diagPanel = document.getElementById('mfrDiagnosis');
-      if (diagPanel) diagPanel.remove();
-      var aiPanel = document.getElementById('mfrAiAnalysis');
-      if (aiPanel) aiPanel.remove();
-
       if (!platform) return;
       const rows = [];
       try {{
@@ -6055,27 +5810,107 @@ def write_html_dashboard(
       panelOpen = true;
     }}
 
-    // 绑定"加推SKU"表格事件
+    // 渲染"加推SKU"（近45天 订单>4 且 退货率<20%）+ 分页
     try {{
-        var tableStatic = document.getElementById('skuPushTableStatic');
-        if (tableStatic) {{
-            if (typeof Tablesort !== 'undefined') {{
-                try {{ new Tablesort(tableStatic); }} catch(e) {{}}
-            }}
-            var rowsStatic = tableStatic.querySelectorAll('tbody tr');
-            for (var i = 0; i < rowsStatic.length; i++) {{
-                (function(row) {{
-                    row.addEventListener('click', function() {{
-                        var sku = row.getAttribute('data-sku');
-                        if (sku && typeof openDetailForSku === 'function') {{
-                            openDetailForSku(sku, 'all');
-                        }}
-                    }});
-                    row.style.cursor = 'pointer';
-                }})(rowsStatic[i]);
-            }}
+      const container = document.getElementById('skuPushTable');
+      if (container && typeof globalDetails === 'object' && globalDetails) {{
+        const now = new Date(todayStr.replace(/\./g,'-').replace(/\//g,'-'));
+        const cutoff = new Date(now.getTime() - 45 * 24 * 3600 * 1000);
+        const stats = {{}};
+        const add = (sku) => {{ if (!stats[sku]) stats[sku] = {{orders:0, returns:0, revenue:0}}; return stats[sku]; }};
+        const parseDate = (s) => {{
+          if (s === null || s === undefined) return null;
+          // 兼容数字型 Excel 序列日期
+          const num = (typeof s === 'number') ? s : (/^\d+$/.test(String(s)) ? Number(String(s)) : NaN);
+          if (!isNaN(num)) {{
+            // Excel 1900 序列基准：1899-12-30
+            const base = new Date(1899, 11, 30);
+            const t = new Date(base.getTime() + num * 24 * 3600 * 1000);
+            return isNaN(t) ? null : t;
+          }}
+          // 优先使用 ISO 格式
+          const t = new Date(String(s).replace(/\./g,'-').replace(/\//g,'-'));
+          return isNaN(t) ? null : t;
+        }};
+        Object.values(globalDetails).forEach(list => {{
+          if (!Array.isArray(list)) return;
+          list.forEach(r => {{
+            const sku = (r['货品名'] || '').trim();
+            if (!sku) return;
+            // 排除代发和样品
+            const platform = String(r['下单平台'] || '').trim();
+            const prod = String(r['商品名称'] || '');
+            const rmk = String(r['备注'] || '');
+            const combined = platform + ' ' + prod + ' ' + sku + ' ' + rmk;
+            if (combined.includes('代发') || combined.includes('样品')) return;
+            const d = parseDate(r['下单时间']);
+            if (!d || d < cutoff) return;
+            const refundType = String(r['退款类型'] || '').trim();
+            const returnNo = String(r['退货单号'] || '').trim();
+            const orderNo = String(r['订单号'] || '').trim();
+            const pay = Number(r['付款金额'] || 0) || 0;
+            const isCancel = refundType.includes('取消') || orderNo.includes('取消');
+            const isReturn = !isCancel && ((/退|退货|退款/.test(refundType)) || (returnNo && returnNo !== '/' && returnNo !== '-'));
+            const isValidOrder = pay > 0 && !isCancel;
+            const sstat = add(sku);
+            if (isValidOrder) {{ sstat.orders += 1; sstat.revenue += Math.max(0, pay); }}
+            if (isReturn) {{ sstat.returns += 1; }}
+          }});
+        }});
+        const candidates = Object.entries(stats).map(([sku, s]) => {{
+          const orders = s.orders|0;
+          if (!orders) return null;
+          const rr = Math.min(1, Math.max(0, (s.returns||0) / Math.max(1, orders)));
+          return {{sku, orders, rr, rev: Number(s.revenue||0)}};
+        }}).filter(x => x && x.orders >= 3 && x.rr < 0.30);
+        const totalCount = candidates.length;
+        const rowsAll = candidates.sort((a,b) => b.orders - a.orders || a.rr - b.rr || b.rev - a.rev);
+        if (rowsAll.length) {{
+          const pageSize = rowsAll.length; // 显示全部行，依靠外层 .scroll-pane 滚动
+          let page = 1;
+          const pages = Math.max(1, Math.ceil(rowsAll.length / pageSize));
+          const navStyle = pages <= 1 ? " style=\\"display:none\\"" : "";
+          const head = "<thead><tr><th>SKU</th><th data-sort-method='number'>订单数</th><th data-sort-method='number'>退货率</th><th data-sort-method='number'>销售额</th></tr></thead>";
+          container.innerHTML = ""
+            + `<div class='sku-nav'${{navStyle}}>`
+            + `<span style='margin-right:auto;color:#666;font-size:12px;'>共${{totalCount}}条</span>`
+            + `<button id='skuPrev'>上一页</button>`
+            + `<span id='skuPage' style='color:#666;font-size:12px;'></span>`
+            + `<button id='skuNext'>下一页</button>`
+            + `</div>`
+            + `<table class='mini-table w-full'>${{head}}<tbody id='skuBody'></tbody></table>`;
+          const bodyEl = container.querySelector('#skuBody');
+          const pageEl = container.querySelector('#skuPage');
+          const prevBtn = container.querySelector('#skuPrev');
+          const nextBtn = container.querySelector('#skuNext');
+          function bindSkuClicks() {{
+            bodyEl.querySelectorAll('tr').forEach(tr => {{
+              tr.addEventListener('click', () => {{
+                const sku = tr.getAttribute('data-sku') || '';
+                if (sku) openDetailForSku(sku, 'all');
+              }});
+            }});
+          }}
+          function render() {{
+            const start = (page - 1) * pageSize;
+            const slice = rowsAll.slice(start, start + pageSize);
+            bodyEl.innerHTML = slice.map(r => `<tr data-sku="${{r.sku}}"><td>${{r.sku}}</td><td data-sort-value='${{r.orders}}'>${{r.orders}}</td><td data-sort-value='${{r.rr.toFixed(6)}}'>${{(r.rr*100).toFixed(1)}}%</td><td data-sort-value='${{r.rev.toFixed(2)}}'>${{r.rev.toFixed(2)}}</td></tr>`).join('');
+            pageEl.textContent = `${{page}} / ${{pages}}`;
+            prevBtn.disabled = page <= 1;
+            nextBtn.disabled = page >= pages;
+            bindSkuClicks();
+          }}
+          prevBtn.addEventListener('click', () => {{ if (page > 1) {{ page -= 1; render(); }} }});
+          nextBtn.addEventListener('click', () => {{ if (page < pages) {{ page += 1; render(); }} }});
+          prevBtn.addEventListener('click', () => {{ playSound('click'); }});
+          nextBtn.addEventListener('click', () => {{ playSound('click'); }});
+          render();
+          try {{ new Tablesort(container.querySelector('table')); }} catch (e) {{}}
+        }} else {{
+          container.innerHTML = '<p>暂无符合条件的SKU。</p>';
         }}
-    }} catch (e) {{ console.error('Push SKU Bind Error:', e); }}
+      }}
+    }} catch (e) {{ /* no-op */ }}
 
     // 渲染“高退货预警”（明细>3，退货率>30%）
     try {{
@@ -6090,7 +5925,13 @@ def write_html_dashboard(
         const statsAll = {{}};
         const addAll = (sku) => {{ if (!statsAll[sku]) statsAll[sku] = {{details:0, orders:0, returns:0, revenue:0, typeCount: {{}}, reasonCount: {{}}}}; return statsAll[sku]; }};
         const parseDate = (s) => {{
-          if (!s) return null;
+          if (s === null || s === undefined) return null;
+          const num = (typeof s === 'number') ? s : (/^\d+$/.test(String(s)) ? Number(String(s)) : NaN);
+          if (!isNaN(num)) {{
+            const base = new Date(1899, 11, 30);
+            const t = new Date(base.getTime() + num * 24 * 3600 * 1000);
+            return isNaN(t) ? null : t;
+          }}
           const t = new Date(String(s).replace(/\./g,'-').replace(/\//g,'-'));
           return isNaN(t) ? null : t;
         }};
@@ -6268,34 +6109,9 @@ def write_html_dashboard(
 
         // 角色切换函数
         function switchRole(role) {{
-            // Sync Top Buttons & Stats
-            const btnService = document.getElementById('topRoleService');
-            const btnOps = document.getElementById('topRoleOps');
-            const dashboardStats = document.getElementById('dashboardStats');
-            
-            if (btnService && btnOps) {{
-                const baseClass = "px-3 py-1.5 rounded-md text-xs font-semibold transition-all ";
-                const active = "bg-white text-brand-600 shadow-sm";
-                const inactive = "text-slate-500 hover:text-slate-700 bg-transparent shadow-none";
-                
-                if (role === 'customer-service') {{
-                    btnService.className = baseClass + active;
-                    btnOps.className = baseClass + inactive;
-                    if (dashboardStats) dashboardStats.style.display = '';
-                }} else {{
-                    btnService.className = baseClass + inactive;
-                    btnOps.className = baseClass + active;
-                    if (dashboardStats) dashboardStats.style.display = 'none';
-                }}
-            }}
-
             if (role === 'operations') {{
-                // Check if search has content
-                const opsSearch = document.getElementById('operationsSearchBox');
-                const hasSearch = opsSearch && opsSearch.value.trim();
-                
                 // 运营视角：显示SKU分析、搜索框和客户列表，隐藏工具栏和列表标签
-                if (operationsElements.summary) operationsElements.summary.style.display = hasSearch ? 'none' : 'grid';
+                if (operationsElements.summary) operationsElements.summary.style.display = 'grid';
                 if (operationsElements.searchContainer) {{
                     operationsElements.searchContainer.classList.add('active');
                 }}
@@ -6303,7 +6119,7 @@ def write_html_dashboard(
                 if (customerServiceElements.listTabs) customerServiceElements.listTabs.style.display = 'none';
                 if (customerServiceElements.filters) customerServiceElements.filters.style.display = 'none';
                 // 保留客户列表表格，用于显示搜索结果
-                if (customerServiceElements.table) customerServiceElements.table.style.display = hasSearch ? 'table' : 'none';
+                if (customerServiceElements.table) customerServiceElements.table.style.display = 'table';
             }} else {{
                 // 客服视角：隐藏SKU分析和运营搜索框，显示所有客服工具
                 if (operationsElements.summary) operationsElements.summary.style.display = 'none';
@@ -6341,7 +6157,29 @@ def write_html_dashboard(
         // ============ 运营搜索框功能 ============
         const operationsSearchBox = document.getElementById('operationsSearchBox');
         if (operationsSearchBox) {{
-            operationsSearchBox.addEventListener('input', applyFilters);
+            operationsSearchBox.addEventListener('input', function() {{
+                const searchText = this.value.trim().toLowerCase();
+                const table = document.querySelector('table');
+                const rows = table ? Array.from(table.querySelectorAll('tbody tr')) : [];
+
+                // 使用与客服视角相同的全局搜索逻辑
+                rows.forEach(row => {{
+                    if (!searchText) {{
+                        // 如果搜索框为空，显示所有行
+                        row.style.display = '';
+                    }} else {{
+                        // 检查行的文本内容和订单号
+                        const rowText = row.textContent.toLowerCase();
+                        const idsAttr = (row.getAttribute('data-ids') || '').toLowerCase();
+
+                        if (rowText.includes(searchText) || idsAttr.includes(searchText)) {{
+                            row.style.display = '';
+                        }} else {{
+                            row.style.display = 'none';
+                        }}
+                    }}
+                }});
+            }});
         }}
     }})();
     </script>
@@ -6448,6 +6286,9 @@ def write_html_dashboard(
             grid-template-columns: repeat(auto-fill, minmax(max(320px, calc((100% - 32px) / 3)), 1fr));
             gap: 16px;
             margin-bottom: 24px;
+        }}
+        .summary .card-wide {{
+            grid-column: 1 / -1;
         }}
 
         @media (max-width: 1200px) {{
@@ -6678,7 +6519,7 @@ def write_html_dashboard(
             left: 0;
             right: 0;
             bottom: 0;
-            height: 80vh;
+            height: 60vh;
             background: white;
             border-top-left-radius: 16px;
             border-top-right-radius: 16px;
@@ -6835,107 +6676,6 @@ def write_html_dashboard(
             color: #94a3b8;
             font-size: 12px;
         }}
-
-        /* AI Chatbox */
-        .ai-chat-btn {{
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            width: 56px;
-            height: 56px;
-            border-radius: 28px;
-            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            cursor: pointer;
-            z-index: 2000;
-            transition: transform 0.2s;
-        }}
-        .ai-chat-btn:hover {{ transform: scale(1.05); }}
-        
-        .ai-chat-panel {{
-            position: fixed;
-            bottom: 90px;
-            right: 24px;
-            width: 360px;
-            height: 500px;
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-            z-index: 2000;
-            display: flex;
-            flex-direction: column;
-            border: 1px solid #e2e8f0;
-        }}
-        .ai-chat-panel.hidden {{ display: none; }}
-        .ai-chat-header {{
-            padding: 12px 16px;
-            background: #f8fafc;
-            border-bottom: 1px solid #e2e8f0;
-            border-radius: 12px 12px 0 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: 600;
-            color: #334155;
-        }}
-        .ai-chat-body {{
-            flex: 1;
-            padding: 16px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            font-size: 13px;
-        }}
-        .chat-msg {{
-            padding: 8px 12px;
-            border-radius: 8px;
-            max-width: 85%;
-            line-height: 1.5;
-        }}
-        .chat-msg.user {{
-            align-self: flex-end;
-            background: #eff6ff;
-            color: #1e40af;
-            border: 1px solid #dbeafe;
-        }}
-        .chat-msg.ai {{
-            align-self: flex-start;
-            background: #f1f5f9;
-            color: #334155;
-            white-space: pre-wrap;
-            font-family: monospace;
-        }}
-        .ai-chat-input-area {{
-            padding: 12px;
-            border-top: 1px solid #e2e8f0;
-            display: flex;
-            gap: 8px;
-        }}
-        .ai-chat-input {{
-            flex: 1;
-            padding: 8px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            font-size: 13px;
-            outline: none;
-        }}
-        .ai-chat-input:focus {{ border-color: #6366f1; }}
-        .ai-chat-send {{
-            padding: 6px 12px;
-            background: #6366f1;
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-        }}
-        .ai-chat-send:disabled {{ background: #cbd5e1; cursor: not-allowed; }}
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans h-screen flex overflow-hidden">
@@ -6962,13 +6702,13 @@ def write_html_dashboard(
             </a>
 
             <div class="px-3 mt-6 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">SKU分析</div>
-            <a href="#" onclick="(function(){{ const opsInput=document.getElementById('operationsSearchBox'); if(opsInput) opsInput.value=''; const opsContainer=document.querySelector('.operations-search-container'); if(opsContainer) opsContainer.classList.add('active'); const summary=document.getElementById('skuSummary'); const table=document.getElementById('actionTable'); if(summary) summary.style.display='grid'; if(table) table.style.display='none'; }})(); document.getElementById('roleOperations')?.click(); setTimeout(() => document.getElementById('skuSummary')?.scrollIntoView({{behavior: 'smooth'}}), 100); return false;" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+            <a href="#" onclick="document.getElementById('roleOperations')?.click(); setTimeout(() => document.getElementById('skuSummary')?.scrollIntoView({{behavior: 'smooth'}}), 100); return false;" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
                 <i class="fa-solid fa-fire w-5 text-center"></i> 加推SKU
             </a>
-            <a href="#" onclick="(function(){{ const opsInput=document.getElementById('operationsSearchBox'); if(opsInput) opsInput.value=''; const opsContainer=document.querySelector('.operations-search-container'); if(opsContainer) opsContainer.classList.add('active'); const summary=document.getElementById('skuSummary'); const table=document.getElementById('actionTable'); if(summary) summary.style.display='grid'; if(table) table.style.display='none'; }})(); document.getElementById('roleOperations')?.click(); setTimeout(() => document.getElementById('skuReturnAlertTable')?.scrollIntoView({{behavior: 'smooth'}}), 100); return false;" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+            <a href="#" onclick="document.getElementById('roleOperations')?.click(); setTimeout(() => document.getElementById('skuReturnAlertTable')?.scrollIntoView({{behavior: 'smooth'}}), 100); return false;" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
                 <i class="fa-solid fa-triangle-exclamation w-5 text-center"></i> 高退货预警
             </a>
-            <a href="#" onclick="(function(){{ const opsInput=document.getElementById('operationsSearchBox'); if(opsInput) opsInput.value=''; const opsContainer=document.querySelector('.operations-search-container'); if(opsContainer) opsContainer.classList.add('active'); const summary=document.getElementById('skuSummary'); const table=document.getElementById('actionTable'); if(summary) summary.style.display='grid'; if(table) table.style.display='none'; }})(); document.getElementById('roleOperations')?.click(); setTimeout(() => document.getElementById('lowProfitTable')?.scrollIntoView({{behavior: 'smooth'}}), 100); return false;" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+            <a href="#" onclick="document.getElementById('roleOperations')?.click(); setTimeout(() => document.getElementById('lowProfitTable')?.scrollIntoView({{behavior: 'smooth'}}), 100); return false;" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
                 <i class="fa-solid fa-circle-exclamation w-5 text-center"></i> 低毛利预警
             </a>
 
@@ -7036,7 +6776,7 @@ def write_html_dashboard(
                 </div>
 
                 <!-- 统计卡片网格 -->
-                <div id="dashboardStats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <!-- 卡片1: 高优先级客户 -->
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group">
                         <div class="flex justify-between items-start">
@@ -7118,98 +6858,32 @@ def write_html_dashboard(
                 new_html += f"    <script>\n{script_body}\n    </script>\n"
 
         new_html += """
-    <!-- AI Chat Components -->
-    <div id="aiChatBtn" class="ai-chat-btn">🤖</div>
-    <div id="aiChatPanel" class="ai-chat-panel hidden">
-        <div class="ai-chat-header">
-            <span>AI 数据分析师</span>
-            <span id="closeAiChat" class="detail-close" style="font-size:12px;">✖</span>
-        </div>
-        <div id="aiChatBody" class="ai-chat-body">
-            <div class="chat-msg ai">你好！我是您的智能数据分析师。您可以问我类似：
-- “找出消费最高的5个客户”
-- “统计各省份的销售额”
-            </div>
-        </div>
-        <div class="ai-chat-input-area">
-            <input type="text" id="aiChatInput" class="ai-chat-input" placeholder="输入问题..." />
-            <button id="aiChatSend" class="ai-chat-send">发送</button>
-        </div>
-    </div>
-
-    <script>
-    // AI Chat Logic
-    (function() {
-        const btn = document.getElementById('aiChatBtn');
-        const panel = document.getElementById('aiChatPanel');
-        const close = document.getElementById('closeAiChat');
-        const input = document.getElementById('aiChatInput');
-        const send = document.getElementById('aiChatSend');
-        const body = document.getElementById('aiChatBody');
-        
-        if (btn) btn.onclick = () => panel.classList.remove('hidden');
-        if (close) close.onclick = () => panel.classList.add('hidden');
-        
-        async function sendMsg() {
-            const query = input.value.trim();
-            if (!query) return;
-            
-            // Add user message
-            addMsg(query, 'user');
-            input.value = '';
-            input.disabled = true;
-            send.disabled = true;
-            
-            // Show loading
-            const loadingId = addMsg('思考中...', 'ai');
-            
-            try {
-                const res = await fetch(`http://127.0.0.1:5005/ask`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 'query': query })
-                });
-                const data = await res.json();
-                
-                // Remove loading
-                const loadingEl = document.getElementById(loadingId);
-                if (loadingEl) loadingEl.remove();
-                
-                if (data.ok) {
-                    addMsg(data.answer, 'ai');
-                } else {
-                    addMsg('出错啦: ' + data.error, 'ai');
-                }
-            } catch (e) {
-                const loadingEl = document.getElementById(loadingId);
-                if (loadingEl) loadingEl.remove();
-                addMsg('网络请求失败，请确认后台服务已启动。', 'ai');
-            } finally {
-                input.disabled = false;
-                send.disabled = false;
-                input.focus();
-            }
-        }
-        
-        function addMsg(text, type) {
-            const div = document.createElement('div');
-            div.className = 'chat-msg ' + type;
-            div.textContent = text;
-            div.id = 'msg-' + Date.now();
-            body.appendChild(div);
-            body.scrollTop = body.scrollHeight;
-            return div.id;
-        }
-        
-        if (send) send.onclick = sendMsg;
-        if (input) input.onkeypress = (e) => {
-            if (e.key === 'Enter') sendMsg();
-        };
-    })();
-    </script>
-
     <!-- 布局适配脚本 -->
     <script>
+        var __ac;
+        function playSound(kind) {
+            try {
+                var AC = __ac || (__ac = new (window.AudioContext || window.webkitAudioContext)());
+                if (AC.state === 'suspended') { AC.resume().catch(function(){}); }
+                var o = AC.createOscillator();
+                var g = AC.createGain();
+                var t = AC.currentTime;
+                var f = 660;
+                if (kind === 'success') f = 880;
+                else if (kind === 'error') f = 240;
+                else if (kind === 'click') f = 660;
+                o.type = 'sine';
+                o.frequency.value = f;
+                g.gain.setValueAtTime(0.001, t);
+                g.gain.exponentialRampToValueAtTime(0.06, t + 0.01);
+                g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+                o.connect(g);
+                g.connect(AC.destination);
+                o.start(t);
+                o.stop(t + 0.2);
+            } catch (e) {}
+        }
+        document.addEventListener('pointerdown', function(){ try { if (__ac && __ac.state === 'suspended') __ac.resume(); } catch(e){} }, { once: true });
         // 同步顶部角色切换到原有的 radio 按钮
         function switchTopRole(role) {
             const btnService = document.getElementById('topRoleService');
@@ -7223,16 +6897,13 @@ def write_html_dashboard(
                 btnOps.className = `px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${inactiveClass}`;
                 const radio = document.getElementById('roleCustomerService');
                 if (radio) radio.click();
-                const dashboardStats = document.getElementById('dashboardStats');
-                if (dashboardStats) dashboardStats.style.display = '';
             } else {
                 btnService.className = `px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${inactiveClass}`;
                 btnOps.className = `px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${activeClass}`;
                 const radio = document.getElementById('roleOperations');
                 if (radio) radio.click();
-                const dashboardStats = document.getElementById('dashboardStats');
-                if (dashboardStats) dashboardStats.style.display = 'none';
             }
+            playSound('click');
         }
 
         // 更新侧边栏的冷却期徽章
@@ -7253,6 +6924,7 @@ def write_html_dashboard(
                 });
                 // 给当前点击项添加 active 类
                 this.classList.add('active');
+                playSound('click');
             });
         });
 
@@ -7412,11 +7084,18 @@ def main():
         for d in getattr(stats, "order_details", []) or []:
             try:
                 # 字段映射：支持新旧字段名
+                # 标准化日期为 ISO 格式，提升前端解析兼容性
+                try:
+                    _raw_dt = d.get("顾客付款日期") or d.get("下单时间", "")
+                    _od = common_parse_excel_date(_raw_dt, today)
+                    _od_str = _od.strftime("%Y-%m-%d") if isinstance(_od, date) else (str(_raw_dt) if _raw_dt is not None else "")
+                except Exception:
+                    _od_str = str(d.get("下单时间", "") or d.get("顾客付款日期", ""))
                 details.append(
                     {
                         "姓名": str(d.get("姓名", "")),
                         "手机号": str(d.get("手机号", "") or getattr(stats, "phone", "") or key),
-                        "下单时间": str(d.get("顾客付款日期") or d.get("下单时间", "")),
+                        "下单时间": _od_str,
                         "下单平台": str(d.get("出售平台") or d.get("下单平台", "")),
                         "厂家": str(d.get("厂家", "")),
                         "货品名": str(d.get("货品名", "")),

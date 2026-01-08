@@ -67,29 +67,8 @@ else
     echo ""
 fi
 
-# ========== 启动后端服务 ==========
-echo "🚀 正在启动后台服务..."
-# 杀死可能存在的旧进程 (避免端口冲突)
-pkill -f "tech/contact_server.py" 2>/dev/null || true
-
-# 启动 Contact Server (后台运行)
-nohup python3 tech/contact_server.py > "$SCRIPT_DIR/logs/contact_server.log" 2>&1 &
-CONTACT_SERVER_PID=$!
-echo "✅ 后台服务已启动 (PID: $CONTACT_SERVER_PID)"
-echo "   端口: 5005 (AI助手/数据回写)"
-
-# 注册退出清理函数
-cleanup() {
-    echo ""
-    echo "🛑 正在停止服务..."
-    kill $CONTACT_SERVER_PID 2>/dev/null || true
-    echo "✅ 服务已停止"
-    exit
-}
-trap cleanup SIGINT SIGTERM EXIT
-
 # ========== 启动HTTP服务器 ==========
-echo "✅ 前端服务启动成功！"
+echo "✅ 服务启动成功！"
 echo ""
 echo "📋 员工访问链接（复制给员工）："
 echo "   http://${IP}:${PORT}/客户预警仪表盘.html"

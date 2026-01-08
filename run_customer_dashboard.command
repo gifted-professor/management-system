@@ -176,36 +176,10 @@ echo "🧹 清理冗余文件..."
 CLEANUP_COUNT=0
 
 # 删除未被使用的账单变体（保留 账单汇总_全部.xlsx 和 账单汇总_截至10月前.xlsx）
-# 以及其他冗余的测试脚本和临时文件
 REDUNDANT_FILES=(
   "$SCRIPT_DIR/tech/账单汇总_截至本月前.xlsx"
   "$SCRIPT_DIR/tech/账单汇总_当月.xlsx"
   "$SCRIPT_DIR/tech/账单汇总_今日.xlsx"
-  "$SCRIPT_DIR/test_dashboard.html"
-  "$SCRIPT_DIR/test_exchange_check.html"
-   "$SCRIPT_DIR/test_exchange_penalty.html"
-   "$SCRIPT_DIR/test_final_exchange.html"
-   "$SCRIPT_DIR/test_sort_debug.html"
-   "$SCRIPT_DIR/test_timing_boost.html"
-   "$SCRIPT_DIR/test_exchange_check.xlsx"
-   "$SCRIPT_DIR/test_exchange_penalty.xlsx"
-   "$SCRIPT_DIR/test_final_exchange.xlsx"
-   "$SCRIPT_DIR/test_timing_boost.xlsx"
-   "$SCRIPT_DIR/tech/generate_customer_alerts.py.backup"
-  "$SCRIPT_DIR/scripts/debug_cooldown_match.py"
-  "$SCRIPT_DIR/scripts/debug_table_rows.py"
-  "$SCRIPT_DIR/scripts/fix_complete.py"
-  "$SCRIPT_DIR/scripts/fix_layout.py"
-  "$SCRIPT_DIR/scripts/fix_layout2.py"
-  "$SCRIPT_DIR/scripts/transform_saas_layout.py"
-  "$SCRIPT_DIR/scripts/transform_to_saas.py"
-  "$SCRIPT_DIR/scripts/apply_cyber_style.py"
-  "$SCRIPT_DIR/tech/test_deepseek_analysis.py"
-  "$SCRIPT_DIR/tech/test_feishu_fetch.py"
-  "$SCRIPT_DIR/tech/diagnose_contact_fetch.py"
-  "$SCRIPT_DIR/tech/diagnose_feishu_contact.py"
-  "$SCRIPT_DIR/tech/append_december.py"
-  "$SCRIPT_DIR/tech/append_november.py"
 )
 
 for file in "${REDUNDANT_FILES[@]}"; do

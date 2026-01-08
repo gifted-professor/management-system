@@ -2,7 +2,7 @@
 Author: gifted-professor 1044396185@qq.com
 Date: 2025-11-14 14:29:02
 LastEditors: gifted-professor 1044396185@qq.com
-LastEditTime: 2026-01-07 14:13:47
+LastEditTime: 2025-11-14 14:29:04
 FilePath: /表格【Codex】_副本/tech/contact_server.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -14,24 +14,6 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
 from datetime import datetime
 import requests
-
-try:
-    from .ai_analyst import AIAnalyst
-except ImportError:
-    # Fallback if running directly
-    import sys
-    sys.path.append(os.path.dirname(__file__))
-    from ai_analyst import AIAnalyst
-
-# Global Analyst Instance (Lazy loaded)
-_analyst = None
-
-def get_analyst():
-    global _analyst
-    if _analyst is None:
-        print("Initializing AI Analyst...")
-        _analyst = AIAnalyst()
-    return _analyst
 
 APP_TOKEN = os.getenv('FEISHU_CONTACT_APP_TOKEN') or os.getenv('FEISHU_APP_TOKEN')
 TABLE_ID = os.getenv('FEISHU_CONTACT_TABLE_ID') or os.getenv('FEISHU_TABLE_ID')
@@ -178,30 +160,6 @@ class Handler(BaseHTTPRequestHandler):
             sku_stats = payload.get('sku_stats')
             result = call_deepseek_analysis(api_key, mfr_name, sku_stats)
             body = json.dumps(result, ensure_ascii=False).encode('utf-8')
-            self.send_response(200)
-            self._cors()
-            self.send_header('Content-Type', 'application/json; charset=utf-8')
-            self.send_header('Content-Length', str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-            return
-
-        if parsed.path == '/ask':
-            query = payload.get('query')
-            if not query:
-                self.send_response(400)
-                self._cors()
-                self.end_headers()
-                return
-            
-            try:
-                analyst = get_analyst()
-                answer = analyst.ask(query)
-                response_data = {'ok': True, 'answer': answer}
-            except Exception as e:
-                response_data = {'ok': False, 'error': str(e)}
-                
-            body = json.dumps(response_data, ensure_ascii=False).encode('utf-8')
             self.send_response(200)
             self._cors()
             self.send_header('Content-Type', 'application/json; charset=utf-8')

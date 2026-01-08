@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>运营会议核心要点简报</title>
+    <!-- 引入 Tailwind CSS 用于排版 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Lucide 图标库 -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* 平滑滚动 */
+        html {
+            scroll-behavior: smooth;
+        }
+        /* 自定义滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col lg:flex-row overflow-hidden">
+
+    <!-- 移动端顶部导航 (仅手机可见) -->
+    <div class="lg:hidden bg-white border-b p-4 flex justify-between items-center sticky top-0 z-20 shadow-sm shrink-0">
+        <h1 class="text-lg font-bold text-gray-900">运营会议核心简报</h1>
+        <button id="mobile-menu-btn" class="p-2 text-gray-600">
+            <i data-lucide="menu" class="w-6 h-6"></i>
+        </button>
+    </div>
+
+    <!-- 侧边栏导航 -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-30 w-64 bg-slate-900 text-white transform -translate-x-full transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:block shrink-0 flex flex-col h-full">
+        <div class="p-6 border-b border-slate-800 shrink-0 flex justify-between items-center">
+            <div>
+                <h2 class="text-xl font-bold tracking-wider">运营复盘会议</h2>
+                <p class="text-slate-400 text-sm mt-2">核心要点简报</p>
+            </div>
+            <!-- 手机端关闭侧边栏按钮 -->
+            <button id="close-sidebar-btn" class="lg:hidden text-slate-400 hover:text-white">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </div>
+        <nav class="p-4 space-y-2 flex-1 overflow-y-auto">
+            <button onclick="scrollToSection('summary')" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-800 hover:text-white text-left">
+                <i data-lucide="file-text" class="w-5 h-5"></i>
+                <span>执行摘要</span>
+            </button>
+            <button onclick="scrollToSection('sales')" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-800 hover:text-white text-left">
+                <i data-lucide="message-square" class="w-5 h-5"></i>
+                <span>销售与话术</span>
+            </button>
+            <button onclick="scrollToSection('team')" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-800 hover:text-white text-left">
+                <i data-lucide="users" class="w-5 h-5"></i>
+                <span>团队与沟通</span>
+            </button>
+            <button onclick="scrollToSection('tracking')" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-800 hover:text-white text-left">
+                <i data-lucide="clipboard-check" class="w-5 h-5"></i>
+                <span>问题反馈</span>
+            </button>
+            <button onclick="scrollToSection('orders')" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-800 hover:text-white text-left">
+                <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                <span>订单跟进</span>
+            </button>
+            <button onclick="scrollToSection('marketing')" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-800 hover:text-white text-left">
+                <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                <span>营销策略</span>
+            </button>
+            <button onclick="scrollToSection('profit')" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-800 hover:text-white text-left">
+                <i data-lucide="dollar-sign" class="w-5 h-5"></i>
+                <span>定价与售后</span>
+            </button>
+            <button onclick="scrollToSection('process')" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-800 hover:text-white text-left">
+                <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                <span>账户与流程</span>
+            </button>
+            <button onclick="scrollToSection('next')" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-800 hover:text-white text-left">
+                <i data-lucide="calendar" class="w-5 h-5"></i>
+                <span>后续行动</span>
+            </button>
+        </nav>
+    </aside>
+
+    <!-- 主内容区域 -->
+    <main class="flex-1 p-4 lg:p-8 max-w-7xl mx-auto overflow-y-auto w-full" id="main-content">
+        
+        <!-- PC端 Header -->
+        <header class="mb-8 bg-white p-6 rounded-xl shadow-sm border border-gray-100 hidden lg:block">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2">运营会议核心要点简报</h1>
+                    <p class="text-gray-500">聚焦销售效率、流程规范与现存问题解决</p>
+                </div>
+                <div class="flex space-x-2">
+                    <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-semibold">内部机密</span>
+                    <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold">立即执行</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="space-y-8 pb-12">
+            
+            <!-- 1. Executive Summary -->
+            <section id="summary" class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-6 lg:p-8 text-white shadow-lg scroll-mt-20 lg:scroll-mt-8">
+                <h2 class="text-2xl font-bold mb-4 flex items-center">
+                    <i data-lucide="file-text" class="mr-2"></i> 执行摘要
+                </h2>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="font-semibold text-blue-100 mb-2 uppercase text-sm tracking-wider">核心决策</h3>
+                        <ul class="space-y-2 text-blue-50">
+                            <li class="flex items-start"><i data-lucide="check-circle-2" class="w-4 h-4 mt-1 mr-2 shrink-0"></i> 话术从“成交导向”转为“关系导向”</li>
+                            <li class="flex items-start"><i data-lucide="check-circle-2" class="w-4 h-4 mt-1 mr-2 shrink-0"></i> 建立固定时间窗口处理售后与单号</li>
+                            <li class="flex items-start"><i data-lucide="check-circle-2" class="w-4 h-4 mt-1 mr-2 shrink-0"></i> 强制执行飞书问题记录机制</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-blue-100 mb-2 uppercase text-sm tracking-wider">关键目标</h3>
+                        <div class="flex items-center space-x-4">
+                            <div class="bg-white/10 p-4 rounded-lg backdrop-blur-sm flex-1">
+                                <div class="text-2xl font-bold">40%-50%</div>
+                                <div class="text-xs text-blue-200">目标回复率</div>
+                            </div>
+                            <div class="bg-white/10 p-4 rounded-lg backdrop-blur-sm flex-1">
+                                <div class="text-2xl font-bold">30%-40%</div>
+                                <div class="text-xs text-blue-200">目标利润率</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. Sales Strategy -->
+            <section id="sales" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 scroll-mt-20 lg:scroll-mt-8">
+                <div class="flex items-center mb-6">
+                    <div class="p-2 bg-green-100 rounded-lg text-green-600 mr-3">
+                        <i data-lucide="trending-up" class="w-6 h-6"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-900">一、销售策略与话术优化</h2>
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-6 mb-6">
+                    <div class="border border-red-100 bg-red-50 rounded-lg p-5">
+                        <h3 class="text-red-700 font-bold mb-3 flex items-center">
+                            <i data-lucide="x-circle" class="w-5 h-5 mr-2"></i> 过去：成交导向
+                        </h3>
+                        <p class="text-gray-600 text-sm mb-2">目标：立即成交</p>
+                        <p class="text-gray-600 text-sm mb-2">方式：僵硬、固定话术</p>
+                        <p class="text-gray-600 text-sm font-medium">结果：回复率低 (10%-20%)</p>
+                    </div>
+                    <div class="border border-green-100 bg-green-50 rounded-lg p-5 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-green-200 text-green-800 text-xs px-2 py-1 rounded-bl-lg font-bold">推荐策略</div>
+                        <h3 class="text-green-700 font-bold mb-3 flex items-center">
+                            <i data-lucide="check-circle-2" class="w-5 h-5 mr-2"></i> 现在：关系导向
+                        </h3>
+                        <p class="text-gray-600 text-sm mb-2">目标：先聊起来，建立联系</p>
+                        <p class="text-gray-600 text-sm mb-2">方式：个性化、拒绝“万金油”</p>
+                        <p class="text-gray-600 text-sm font-medium">结果：回复率提升 (40%-50%)</p>
+                    </div>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <h4 class="font-bold text-gray-800 mb-2">每日行动目标：</h4>
+                    <p class="text-gray-700">每人每天至少与 <span class="font-bold text-blue-600">10个新客户</span> 进行深度、个性化沟通（非复制粘贴）。</p>
+                </div>
+            </section>
+
+            <!-- 3. Team & Communication -->
+            <section id="team" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 scroll-mt-20 lg:scroll-mt-8">
+                <div class="flex items-center mb-6">
+                    <div class="p-2 bg-purple-100 rounded-lg text-purple-600 mr-3">
+                        <i data-lucide="users" class="w-6 h-6"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-900">二、团队协作与沟通</h2>
+                </div>
+                <div class="grid md:grid-cols-3 gap-4">
+                    <div class="bg-purple-50 p-4 rounded-lg">
+                        <h3 class="font-bold text-purple-900 mb-2">经验分享</h3>
+                        <p class="text-sm text-gray-600">低回复率成员主动向高成功率同事请教。形成“帮带”机制。</p>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-lg">
+                        <h3 class="font-bold text-purple-900 mb-2">利益共同体</h3>
+                        <p class="text-sm text-gray-600">个人成单计入团队总奖金池。鼓励互助，禁止私下消极吐槽。</p>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-lg">
+                        <h3 class="font-bold text-purple-900 mb-2">开放反馈</h3>
+                        <p class="text-sm text-gray-600">鼓励用数据反驳。如果觉得某种话术更好，拿回复率数据说话。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. Tracking & Feedback -->
+            <section id="tracking" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 scroll-mt-20 lg:scroll-mt-8">
+                <div class="flex items-center mb-6">
+                    <div class="p-2 bg-orange-100 rounded-lg text-orange-600 mr-3">
+                        <i data-lucide="clipboard-check" class="w-6 h-6"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-900">三、问题记录与反馈机制</h2>
+                </div>
+                <div class="flex flex-col md:flex-row items-center gap-6">
+                    <div class="flex-1 w-full">
+                        <div class="mb-4">
+                            <h3 class="font-bold text-gray-800 flex items-center text-lg">
+                                <i data-lucide="alert-triangle" class="text-orange-500 mr-2 w-5 h-5"></i>
+                                痛点：口头反馈易遗忘
+                            </h3>
+                            <p class="text-gray-500 mt-1 pl-7">例如：厂家库存反馈未记录，导致第二天重复询问，效率低下。</p>
+                        </div>
+                        <ul class="space-y-3 pl-7">
+                            <li class="flex items-center text-gray-700 bg-gray-50 p-3 rounded-md border-l-4 border-blue-500">
+                                <span class="font-bold mr-2">工具：</span> 使用飞书即时记录问题。
+                            </li>
+                            <li class="flex items-center text-gray-700 bg-gray-50 p-3 rounded-md border-l-4 border-blue-500">
+                                <span class="font-bold mr-2">执行人：</span> 全员（重点提及明慧、黄蓉）。
+                            </li>
+                            <li class="flex items-center text-gray-700 bg-gray-50 p-3 rounded-md border-l-4 border-blue-500">
+                                <span class="font-bold mr-2">复盘：</span> 会议设专门环节讨论已记录问题。
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. Orders & Case Study -->
+            <section id="orders" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 scroll-mt-20 lg:scroll-mt-8">
+                <div class="flex items-center mb-6">
+                    <div class="p-2 bg-red-100 rounded-lg text-red-600 mr-3">
+                        <i data-lucide="shopping-bag" class="w-6 h-6"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-900">四、订单与客户跟进</h2>
+                </div>
+
+                <div class="mb-6">
+                    <h3 class="font-bold text-gray-800 mb-2">跟进原则</h3>
+                    <div class="flex items-center space-x-2 text-sm text-gray-600 bg-gray-100 p-3 rounded inline-block">
+                        <span>优先级：</span>
+                        <span class="font-bold text-gray-900">完成已有客户跟进</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        <span class="font-bold text-gray-900">开拓新客户 (10人/天)</span>
+                    </div>
+                </div>
+
+                <!-- Case Study Card -->
+                <div class="border-2 border-red-200 rounded-xl overflow-hidden">
+                    <div class="bg-red-50 p-3 border-b border-red-200 flex items-center justify-between">
+                        <span class="text-red-800 font-bold flex items-center">
+                            <i data-lucide="alert-triangle" class="w-4 h-4 mr-2"></i> 负面案例警示：环球奥莱
+                        </span>
+                    </div>
+                    <div class="p-4 grid md:grid-cols-3 gap-4 bg-white">
+                        <div class="p-3 bg-gray-50 rounded">
+                            <p class="text-xs text-gray-500 uppercase font-bold">错误 1</p>
+                            <p class="text-sm font-medium mt-1">机会流失</p>
+                            <p class="text-xs text-gray-600 mt-1">平台上大量潜在成交机会被遗漏，未及时回复。</p>
+                        </div>
+                        <div class="p-3 bg-gray-50 rounded">
+                            <p class="text-xs text-gray-500 uppercase font-bold">错误 2</p>
+                            <p class="text-sm font-medium mt-1">补偿处理不当</p>
+                            <p class="text-xs text-gray-600 mt-1">为节省10元差价（40 vs 50元），拖延决策导致客户退货。</p>
+                        </div>
+                        <div class="p-3 bg-gray-50 rounded">
+                            <p class="text-xs text-gray-500 uppercase font-bold">后果</p>
+                            <p class="text-sm font-medium mt-1 text-red-600">直接亏损</p>
+                            <p class="text-xs text-gray-600 mt-1">退货产生双向运费，损失远超补偿金。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+             <!-- 6. Marketing -->
+             <section id="marketing" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 scroll-mt-20 lg:scroll-mt-8">
+                <div class="flex items-center mb-6">
+                    <div class="p-2 bg-pink-100 rounded-lg text-pink-600 mr-3">
+                        <i data-lucide="bar-chart-3" class="w-6 h-6"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-900">五、营销与内容策略</h2>
+                </div>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="font-bold text-gray-800 mb-3 border-b pb-2">朋友圈运营复盘</h3>
+                        <ul class="space-y-3 text-sm">
+                            <li class="flex justify-between items-center">
+                                <span class="text-gray-600">秒杀活动</span>
+                                <span class="badge bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-semibold">有效，带动销量</span>
+                            </li>
+                            <li class="flex justify-between items-center">
+                                <span class="text-gray-600">图片形式</span>
+                                <span class="badge bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-semibold">上身图 &gt; 纯商品图</span>
+                            </li>
+                            <li class="flex justify-between items-center">
+                                <span class="text-gray-600">款式偏好</span>
+                                <span class="badge bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-semibold">中性/男女同款 &gt; 纯女款</span>
+                            </li>
+                            <li class="flex justify-between items-center">
+                                <span class="text-gray-600">高价品潜能</span>
+                                <span class="badge bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-xs font-semibold">闲鱼高询盘证明需求存在</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h3 class="font-bold text-blue-900 mb-2">新策略：用户分层测试</h3>
+                        <p class="text-sm text-blue-800 mb-4">为避免单日数据偶然性，实施以下A/B测试：</p>
+                        <div class="flex items-center space-x-2 flex-wrap gap-y-2">
+                            <span class="bg-white px-3 py-1 rounded shadow-sm text-xs font-bold text-gray-600">打标签 (男/女)</span>
+                            <i data-lucide="arrow-right" class="w-3 h-3 text-blue-400"></i>
+                            <span class="bg-white px-3 py-1 rounded shadow-sm text-xs font-bold text-gray-600">分性别投放内容</span>
+                            <i data-lucide="arrow-right" class="w-3 h-3 text-blue-400"></i>
+                            <span class="bg-white px-3 py-1 rounded shadow-sm text-xs font-bold text-gray-600">一周数据对比</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 7. Profit & After-sales -->
+            <section id="profit" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 scroll-mt-20 lg:scroll-mt-8">
+                <div class="flex items-center mb-6">
+                    <div class="p-2 bg-yellow-100 rounded-lg text-yellow-600 mr-3">
+                        <i data-lucide="dollar-sign" class="w-6 h-6"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-900">六、定价、利润与售后</h2>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-gray-50 p-5 rounded-lg border">
+                        <h3 class="font-bold text-gray-800 mb-2">灵活定价原则</h3>
+                        <div class="flex items-end space-x-2 mb-2">
+                            <span class="text-3xl font-bold text-green-600">30%</span>
+                            <span class="text-sm text-gray-500 mb-1">最低利润率红线</span>
+                        </div>
+                        <p class="text-sm text-gray-600">
+                            <span class="font-bold text-gray-900">核心理念：</span> "赚多赚少都是赚"。在单量不足时，优先成交，避免因微小利润差导致客户流失。
+                        </p>
+                    </div>
+
+                    <div class="bg-gray-50 p-5 rounded-lg border">
+                        <h3 class="font-bold text-gray-800 mb-2">售后处理阶梯</h3>
+                        <div class="space-y-2">
+                            <div class="flex items-center text-sm">
+                                <span class="w-6 h-6 rounded-full bg-green-200 text-green-800 flex items-center justify-center text-xs font-bold mr-2 shrink-0">1</span>
+                                <span>主动小额补偿 (30-50元) 试探</span>
+                            </div>
+                            <div class="flex items-center text-sm">
+                                <span class="w-6 h-6 rounded-full bg-yellow-200 text-yellow-800 flex items-center justify-center text-xs font-bold mr-2 shrink-0">2</span>
+                                <span>加大补偿力度</span>
+                            </div>
+                            <div class="flex items-center text-sm">
+                                <span class="w-6 h-6 rounded-full bg-red-200 text-red-800 flex items-center justify-center text-xs font-bold mr-2 shrink-0">3</span>
+                                <span class="text-red-700 font-bold">极限权限：成本价(+10元运费)出给客户</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-3 border-t pt-2">目标：尽一切可能避免退货（信用损失+运费亏损）。</p>
+                    </div>
+                </div>
+            </section>
+
+             <!-- 8. Process & Errors -->
+             <section id="process" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 scroll-mt-20 lg:scroll-mt-8">
+                <div class="flex items-center mb-6">
+                    <div class="p-2 bg-indigo-100 rounded-lg text-indigo-600 mr-3">
+                        <i data-lucide="clipboard-check" class="w-6 h-6"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-900">七、账户健康与流程规范</h2>
+                </div>
+
+                <!-- Table Style for Issues -->
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm text-left">
+                        <thead class="bg-gray-50 text-gray-700 font-bold uppercase">
+                            <tr>
+                                <th class="px-4 py-3 whitespace-nowrap">问题类别</th>
+                                <th class="px-4 py-3">具体表现</th>
+                                <th class="px-4 py-3">标准化解决方案</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-blue-600 whitespace-nowrap">单号填写</td>
+                                <td class="px-4 py-3 text-gray-600">晚班漏填，致次日退款</td>
+                                <td class="px-4 py-3 font-medium bg-blue-50">晚班下班前最后10分钟强制检查并填写</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-blue-600 whitespace-nowrap">重复报单</td>
+                                <td class="px-4 py-3 text-gray-600">筛选逻辑错误</td>
+                                <td class="px-4 py-3 font-medium bg-blue-50">优化报单表，增加“追单号”视图（黄蓉负责）</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-blue-600 whitespace-nowrap">货号/尾缀</td>
+                                <td class="px-4 py-3 text-gray-600">蝙蝠厂家漏颜色尾缀发错货</td>
+                                <td class="px-4 py-3 font-medium bg-blue-50">下单必填尾缀。16:30后优先检查蝙蝠订单。错一罚五。</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-blue-600 whitespace-nowrap">供应商</td>
+                                <td class="px-4 py-3 text-gray-600">青岛厂家12天不出单号</td>
+                                <td class="px-4 py-3 font-medium bg-red-50 text-red-700">直接放弃合作</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium text-blue-600 whitespace-nowrap">售后响应</td>
+                                <td class="px-4 py-3 text-gray-600">仅口头安抚后遗忘</td>
+                                <td class="px-4 py-3 font-medium bg-blue-50">固定16:30-18:00处理售后（最高优先级）</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-6 flex flex-col md:flex-row gap-4">
+                     <div class="bg-indigo-50 p-4 rounded-lg flex-1">
+                        <h4 class="font-bold text-indigo-900 mb-1">刷单策略</h4>
+                        <p class="text-xs text-indigo-800">无需大量，每日针对数据差（如难得系列）账号刷1-2单。建立打勾确认清单。</p>
+                     </div>
+                     <div class="bg-indigo-50 p-4 rounded-lg flex-1">
+                        <h4 class="font-bold text-indigo-900 mb-1">代发监控</h4>
+                        <p class="text-xs text-indigo-800">定期检查。若某渠道（如星星泪光）连续两天高私信无咨询，立即剔除。</p>
+                     </div>
+                </div>
+            </section>
+
+            <!-- 9. Next Steps -->
+            <section id="next" class="bg-slate-900 text-white rounded-xl shadow-lg p-6 lg:p-8 scroll-mt-20 lg:scroll-mt-8">
+                <h2 class="text-xl font-bold mb-6 flex items-center">
+                    <i data-lucide="calendar" class="mr-2"></i> 下一步行动计划
+                </h2>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="bg-blue-600 p-2 rounded mr-3 shrink-0">
+                                <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold">营销活动</h4>
+                                <p class="text-sm text-slate-300">重启生日回馈活动（统计客户生日）；筹备双十二。</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="bg-blue-600 p-2 rounded mr-3 shrink-0">
+                                <i data-lucide="clipboard-check" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold">工具优化</h4>
+                                <p class="text-sm text-slate-300">黄蓉今晚完成报单表格优化，增加“追单号”视图。</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="bg-blue-600 p-2 rounded mr-3 shrink-0">
+                                <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold">流程固化</h4>
+                                <p class="text-sm text-slate-300">全员严格执行新时间节点（尤其是16:30的售后/检查窗口）。</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="bg-blue-600 p-2 rounded mr-3 shrink-0">
+                                <i data-lucide="message-square" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold">习惯养成</h4>
+                                <p class="text-sm text-slate-300">持续执行问题即时记录，下周会议高效复盘。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+        
+        <footer class="mt-12 text-center text-gray-500 text-sm pb-8">
+            <p>© 2023 运营团队内部资料 • 请勿外传</p>
+        </footer>
+    </main>
+
+    <script>
+        // 初始化图标
+        lucide.createIcons();
+
+        // 侧边栏逻辑
+        const sidebar = document.getElementById('sidebar');
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const closeSidebarBtn = document.getElementById('close-sidebar-btn');
+        const navItems = document.querySelectorAll('.nav-item');
+
+        function toggleSidebar() {
+            sidebar.classList.toggle('-translate-x-full');
+        }
+
+        mobileMenuBtn.addEventListener('click', toggleSidebar);
+        closeSidebarBtn.addEventListener('click', toggleSidebar);
+
+        // 导航点击跳转
+        function scrollToSection(id) {
+            const element = document.getElementById(id);
+            if (element) {
+                // 关闭侧边栏（移动端）
+                sidebar.classList.add('-translate-x-full');
+                
+                // 平滑滚动
+                element.scrollIntoView({ behavior: 'smooth' });
+                
+                // 更新高亮样式
+                updateActiveTab(id);
+            }
+        }
+
+        function updateActiveTab(activeId) {
+            navItems.forEach(btn => {
+                // 简单的字符串匹配来判断
+                if(btn.getAttribute('onclick').includes(activeId)) {
+                    btn.classList.remove('text-slate-300', 'hover:bg-slate-800');
+                    btn.classList.add('bg-blue-600', 'text-white');
+                } else {
+                    btn.classList.add('text-slate-300', 'hover:bg-slate-800');
+                    btn.classList.remove('bg-blue-600', 'text-white');
+                }
+            });
+        }
+
+        // 默认高亮第一个
+        updateActiveTab('summary');
+    </script>
+</body>
+</html>
