@@ -1,0 +1,47 @@
+# 环境配置
+.env.local
+
+# 日志文件
+*.log
+logs/
+
+# macOS 系统文件
+.DS_Store
+
+# 临时目录
+.tmp/
+.trae/
+
+# Excel 临时文件
+~$*.xlsx
+
+# 原始数据文件（包含敏感信息）
+*.xlsx
+!.env.local.example
+
+# 生成的输出文件
+客户预警输出.xlsx
+客户预警仪表盘.html
+
+# 飞书拉取的账单
+新增账单/拉取_*.xlsx
+tech/新增账单/拉取_*.xlsx
+
+# 合并后的账单
+tech/账单汇总_*.xlsx
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# 虚拟环境
+venv/
+.venv/
+
+# 旧归档
+archive/
+
+# IDE 临时文件
+.gemini-clipboard/
+.idea/
+.vscode/

@@ -1,0 +1,120 @@
+{#
+  Base Dashboard Template
+  基础仪表盘模板 - SaaS 风格布局
+#}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客户触达仪表盘 - {{ today }}</title>
+
+    {# External CSS Libraries #}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    {# Tailwind Config #}
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Noto Sans SC', 'IBM Plex Sans', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+                        mono: ['IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    {# Custom Styles - 引用模板内的CSS #}
+    <style>
+        {% include 'styles/main.css' %}
+        {% include 'styles/components.css' %}
+        {% include 'styles/layout.css' %}
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 font-sans h-screen flex overflow-hidden dashboard-layout">
+    <div class="dashboard-container">
+        {# Sidebar Navigation #}
+        {% include 'components/sidebar.html' %}
+
+        {# Main Content Area #}
+        <div class="main-container">
+            {# Top Header #}
+            {% include 'components/header.html' %}
+
+            {# Scrollable Content #}
+            <main class="main-content">
+                <div class="content-wrapper">
+                    {# Page Title #}
+                    <div class="page-title">
+                        <h2>客户触达仪表盘</h2>
+                        <p>生成日期: {{ today }}</p>
+                    </div>
+
+                    {# Stats Cards #}
+                    {% include 'components/stats_cards.html' %}
+
+                    {# Original Content Area #}
+                    <div id="originalContent">
+                        {% block content %}{% endblock %}
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    {# Detail Panel (Drawer) #}
+    {% include 'components/detail_panel.html' %}
+
+    {# JavaScript - 数据注入 #}
+    <script>
+        // Configuration and Data
+        const CONFIG = {
+            today: '{{ today }}',
+            contactServerPort: {{ contact_server_port }},
+            contactWriteEnabled: {{ 'true' if contact_write_enabled else 'false' }},
+            cooldownDays: {{ cooldown_days }},
+        };
+
+        // Application Data
+        const APP_DATA = {
+            tags: {{ tags_json|safe }},
+            platforms: {{ platforms_json|safe }},
+            detailMap: {{ detail_map_json|safe }},
+            globalDetails: {{ global_details_json|safe }},
+            globalMeta: {{ global_meta_json|safe }},
+            idIndex: {{ id_index_json|safe }},
+            nameIndex: {{ name_index_json|safe }},
+            cooldownKeys: {{ cooldown_keys_json|safe }},
+            cooldownCustomers: {{ cooldown_customers_json|safe }},
+            ownerSuggestions: {{ owner_suggestions_json|safe }},
+            envDefaultOwner: {{ env_default_owner_json|safe }},
+        };
+    </script>
+
+    {# Main Application Scripts #}
+    <script>
+        {% include 'scripts/tablesort.js' %}
+    </script>
+    <script>
+        {% include 'scripts/app.js' %}
+    </script>
+    <script>
+        {% include 'scripts/layout.js' %}
+    </script>
+</body>
+</html>

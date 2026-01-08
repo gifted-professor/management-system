@@ -1,0 +1,36 @@
+{# Detail Panel (Drawer) Component #}
+<div id="detailBackdrop" class="detail-backdrop hidden"></div>
+<div id="detailPanel" class="detail-panel hidden">
+    <div class="detail-header">
+        <h3 id="detailTitle">订单明细</h3>
+        <button id="detailClose" class="detail-close">
+            <i class="fa-solid fa-times"></i>
+        </button>
+    </div>
+    <div class="detail-body">
+        <table id="detailTable">
+            <thead>
+                <tr>
+                    <th>姓名</th>
+                    <th>手机号</th>
+                    <th data-sort-method="number">下单时间</th>
+                    <th>下单平台</th>
+                    <th>厂家</th>
+                    <th>货品名</th>
+                    <th>颜色</th>
+                    <th>尺码</th>
+                    <th data-sort-method="number">付款金额</th>
+                    <th data-sort-method="number">打款金额</th>
+                    <th data-sort-method="number">毛利率</th>
+                    <th>订单号</th>
+                    <th>退货单号</th>
+                    <th>退款类型</th>
+                    <th>退款原因</th>
+                </tr>
+            </thead>
+            <tbody id="detailTbody">
+                {# Dynamic content will be inserted here via JavaScript #}
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,65 @@
+{# Dashboard Template - 继承 base.html #}
+{% extends "base.html" %}
+
+{% block content %}
+    {# Role Selector (Legacy) #}
+    <div class="role-selector">
+        <div class="role-option operations">
+            <input type="radio" id="roleOperations" name="userRole" value="operations">
+            <label for="roleOperations">运营视角</label>
+        </div>
+        <div class="role-option customer-service">
+            <input type="radio" id="roleCustomerService" name="userRole" value="customer-service" checked>
+            <label for="roleCustomerService">客服视角</label>
+        </div>
+    </div>
+
+    {# Operations Search Box #}
+    <div class="operations-search-container">
+        <input type="search"
+               class="operations-search-box"
+               id="operationsSearchBox"
+               placeholder="🔍 搜索 SKU 名称、订单号、退货单号...">
+    </div>
+
+    {# SKU Summary Cards #}
+    <div class="summary" id="skuSummary">
+        {{ sku_push_html|safe }}
+        {{ sku_return_html|safe }}
+        {{ low_margin_html|safe }}
+    </div>
+
+    {# Toolbar #}
+    <div class="toolbar">
+        <button id="exportCsv">导出今日联系记录 (CSV)</button>
+        <button id="clearMarks">清除今日标记</button>
+        <label style="margin-left:12px;">跟进人（选择）：
+            <select id="defaultOwnerSelect" style="width:140px;">
+                <option value="">选择</option>
+                <option value="黄蓉">黄蓉</option>
+                <option value="云云">云云</option>
+                <option value="铭慧">铭慧</option>
+            </select>
+        </label>
+        <span id="followupSummary"></span>
+        <span id="globalHitBox" style="margin-left:12px;color:#444"></span>
+    </div>
+
+    {# Filters #}
+    {{ filters_html|safe }}
+
+    {# Main Table #}
+    <table id="actionTable">
+        <thead>
+            <tr>{{ header_cells|safe }}</tr>
+        </thead>
+        <tbody>
+            {{ table_rows|safe }}
+        </tbody>
+    </table>
+
+    {# Footer #}
+    <div class="footer">
+        自动生成脚本：generate_customer_alerts.py | 数据来源：账单汇总
+    </div>
+{% endblock %}

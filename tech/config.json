@@ -1,0 +1,112 @@
+{
+  "defaults": {
+    "gross_margin": 0.32,
+    "category_cycle_days": 60,
+    "expected_return_rate": 0.08,
+    "touch_cost": 6.0,
+    "max_estimated_margin": 8000.0,
+    "max_estimated_uplift": 5.0,
+    "max_priority_score": 500.0,
+    "min_priority_score": -40.0,
+    "uplift_base": 0.6,
+    "uplift_floor": 0.2,
+    "uplift_ceiling": 2.0,
+    "uplift_ceiling_premium": 3.5,
+    "uplift_premium_min_orders": 3,
+    "uplift_premium_max_return": 0.3,
+    "uplift_premium_min_days_span": 30
+  },
+  "filters": {
+    "default_churn_days": 90,
+    "churn_multiplier": 1.5,
+    "value_top_percentile": 0.2,
+    "drop_threshold": 0.5,
+    "cooldown_days": 7,
+    "exclude_recent_days": 30,
+    "allow_high_return": false,
+    "high_return_threshold": 1.0
+  },
+  "clv_weights": {
+    "historical_value": 0.4,
+    "current_activity": 0.3,
+    "growth_potential": 0.3
+  },
+  "customer_tiers": {
+    "high_value": {
+      "cumulative_threshold": 5000,
+      "min_orders_with_aov": 3,
+      "min_aov": 500
+    },
+    "medium_value": {
+      "cumulative_min": 2000,
+      "cumulative_max": 5000,
+      "min_orders": 2
+    }
+  },
+  "sku_alerts": {
+    "push_min_orders": 2,
+    "push_max_return_rate": 0.3,
+    "push_lookback_days": 45,
+    "high_return_min_count": 3,
+    "high_return_threshold": 0.3,
+    "low_margin_threshold": 0.35
+  },
+  "priority_score_boost": {
+    "star_customer": 30,
+    "orders_10_plus": 20,
+    "orders_5_plus": 10
+  },
+  "timing_window_boost": {
+    "enabled": true,
+    "window_percentage": 0.20,
+    "peak_boost": 30.0,
+    "min_orders": 2,
+    "max_return_rate": 0.0,
+    "gaussian_k": 2.0
+  },
+  "categories": {
+    "羽绒服": {
+      "aliases": ["羽绒服", "羽绒衣", "羽绒外套"],
+      "gross_margin": 0.42,
+      "category_cycle_days": 180,
+      "expected_return_rate": 0.05,
+      "touch_cost": 12.0,
+      "max_estimated_margin": 12000.0,
+      "max_estimated_uplift": 4.0
+    },
+    "帽子": {
+      "aliases": ["帽子", "棒球帽", "渔夫帽"],
+      "gross_margin": 0.28,
+      "category_cycle_days": 35,
+      "expected_return_rate": 0.1,
+      "touch_cost": 5.0,
+      "max_estimated_margin": 4000.0,
+      "max_estimated_uplift": 4.0
+    },
+    "短袖": {
+      "aliases": ["短袖", "短T", "T恤", "短袖T恤"],
+      "gross_margin": 0.26,
+      "category_cycle_days": 28,
+      "expected_return_rate": 0.12,
+      "touch_cost": 4.5,
+      "max_estimated_margin": 3500.0,
+      "max_estimated_uplift": 4.0
+    }
+  },
+  "platform_touch_cost": {
+    "小红书": 8.0,
+    "抖音": 6.5,
+    "视频号": 7.0
+  },
+  "orders_dampening": {
+    "1": 0.3,
+    "2": 0.7,
+    "3": 0.9,
+    "default": 1.0
+  },
+  "single_order": {
+    "enabled": true,
+    "mode": "previous_month", 
+    "days": 30
+  }
+}

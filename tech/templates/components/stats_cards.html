@@ -1,0 +1,66 @@
+{# Stats Cards Component #}
+<div class="stats-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    {# Card 1: High Priority Customers #}
+    <div class="stat-card red bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group">
+        <div class="stat-card-header flex justify-between items-start">
+            <div>
+                <p class="stat-card-label text-xs font-bold text-slate-400 uppercase tracking-wide">高优先级客户</p>
+                <p class="stat-card-value text-3xl font-mono font-bold text-slate-900 mt-2">{{ high_priority_count }}</p>
+            </div>
+            <div class="stat-card-icon w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+            </div>
+        </div>
+        <div class="stat-card-footer mt-4 flex items-center text-xs font-medium text-red-600 bg-red-50 w-fit px-2 py-1 rounded-full">
+            <span>优先分 ≥ 80</span>
+        </div>
+    </div>
+
+    {# Card 2: Medium Priority Customers #}
+    <div class="stat-card amber bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group">
+        <div class="stat-card-header flex justify-between items-start">
+            <div>
+                <p class="stat-card-label text-xs font-bold text-slate-400 uppercase tracking-wide">中优先级客户</p>
+                <p class="stat-card-value text-3xl font-mono font-bold text-slate-900 mt-2">{{ mid_priority_count }}</p>
+            </div>
+            <div class="stat-card-icon w-10 h-10 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <i class="fa-regular fa-clock text-lg"></i>
+            </div>
+        </div>
+        <div class="stat-card-footer mt-4 flex items-center text-xs font-medium text-amber-600 bg-amber-50 w-fit px-2 py-1 rounded-full">
+            <span>优先分 50-79</span>
+        </div>
+    </div>
+
+    {# Card 3: Total Customers #}
+    <div class="stat-card blue bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group">
+        <div class="stat-card-header flex justify-between items-start">
+            <div>
+                <p class="stat-card-label text-xs font-bold text-slate-400 uppercase tracking-wide">触达客户总数</p>
+                <p class="stat-card-value text-3xl font-mono font-bold text-slate-900 mt-2">{{ total_customers|default(0)|int|string|safe }}</p>
+            </div>
+            <div class="stat-card-icon w-10 h-10 rounded-xl bg-brand-50 text-brand-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-users text-lg"></i>
+            </div>
+        </div>
+        <div class="stat-card-footer mt-4 flex items-center text-xs font-medium text-brand-600 bg-brand-50 w-fit px-2 py-1 rounded-full">
+            <i class="fa-solid fa-check mr-1"></i> 系统运行中
+        </div>
+    </div>
+
+    {# Card 4: Cooldown Customers #}
+    <div class="stat-card purple bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group">
+        <div class="stat-card-header flex justify-between items-start">
+            <div>
+                <p class="stat-card-label text-xs font-bold text-slate-400 uppercase tracking-wide">冷却期客户</p>
+                <p class="stat-card-value text-3xl font-mono font-bold text-slate-900 mt-2">{{ cooldown_total|default(0) }}</p>
+            </div>
+            <div class="stat-card-icon w-10 h-10 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-clock-rotate-left text-lg"></i>
+            </div>
+        </div>
+        <div class="stat-card-footer mt-4 flex items-center text-xs font-medium text-purple-600 bg-purple-50 w-fit px-2 py-1 rounded-full">
+            <span>近{{ cooldown_days|default(7) }}天已联系</span>
+        </div>
+    </div>
+</div>
