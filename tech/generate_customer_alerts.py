@@ -3003,7 +3003,7 @@ def write_html_dashboard(
         if not all_details:
             return ""
         cutoff = today - timedelta(days=max(1, days_window))
-        sku_stats: Dict[str, Dict[str, float]] = {}
+        sku_stats: Dict[str, Dict[str, Any]] = {}
         
         for _key, rows in all_details.items():
             if not isinstance(rows, list):
@@ -3042,18 +3042,22 @@ def write_html_dashboard(
                     is_valid_order = (pay_amount or 0.0) > 0 and not is_cancel
                     stat = sku_stats.get(item)
                     if stat is None:
-                        stat = {"orders": 0.0, "returns": 0.0, "revenue": 0.0}
+                        stat = {"orders": 0.0, "returns": 0.0, "revenue": 0.0, "mcounts": {}}
                         sku_stats[item] = stat
                     if is_valid_order:
                         stat["orders"] += 1
                         stat["revenue"] += max(0.0, pay_amount)
+                        mfr = str(r.get("厂家", "") or "").strip()
+                        if mfr:
+                            mc = stat["mcounts"]
+                            mc[mfr] = int(mc.get(mfr, 0)) + 1
                     if is_return:
                         stat["returns"] += 1
                 except Exception:
                     continue
         
         # 构建候选集
-        rows: List[Tuple[str, int, float, float]] = []  # (sku, orders, return_rate, revenue)
+        rows: List[Tuple[str, str, int, float, float]] = []  # (sku, top_mfr, orders, return_rate, revenue)
         for sku, stat in sku_stats.items():
             orders = int(stat.get("orders", 0) or 0)
             returns = int(stat.get("returns", 0) or 0)
@@ -3062,7 +3066,19 @@ def write_html_dashboard(
             # 退货率控制在[0,1]
             rr = 0.0 if orders <= 0 else min(1.0, max(0.0, returns / max(1, orders)))
             if orders >= max(1, min_orders) and rr < max_return_rate:
-                rows.append((sku, orders, rr, float(stat.get("revenue", 0.0) or 0.0)))
+                # 选取近窗口内该SKU订单最多的厂家
+                mcounts = dict(stat.get("mcounts") or {})
+                top_mfr = ""
+                top_cnt = -1
+                for k, v in mcounts.items():
+                    try:
+                        cnt = int(v or 0)
+                    except Exception:
+                        cnt = 0
+                    if cnt > top_cnt:
+                        top_cnt = cnt
+                        top_mfr = k
+                rows.append((sku, top_mfr, orders, rr, float(stat.get("revenue", 0.0) or 0.0)))
         if not rows:
             # 即使没有数据也显示卡片和提示
             return (
@@ -3071,15 +3087,16 @@ def write_html_dashboard(
                 "<div class=\"scroll-pane border border-slate-200 rounded-lg\"><div class=\"text-sm text-slate-400 text-center py-8\">近45天内暂无符合条件的SKU</div></div></div>"
             )
         # 排序：订单数降序，其次退货率升序，其次销售额降序
-        rows.sort(key=lambda x: (-x[1], x[2], -x[3]))
+        rows.sort(key=lambda x: (-x[2], x[3], -x[4]))
         total_count = len(rows)
         rows = rows[:top_n]
         # 渲染表格
         body = []
-        for sku, orders, rr, rev in rows:
+        for sku, mfr, orders, rr, rev in rows:
             body.append(
                 f"<tr data-sku=\"{escape(sku)}\">"
                 f"<td class=\"font-medium text-slate-700\">{escape(sku)}</td>"
+                f"<td>{escape(mfr)}</td>"
                 f"<td data-sort-value='{orders}'>{orders}</td>"
                 f"<td data-sort-value='{rr:.6f}'>{rr*100:.1f}%</td>"
                 f"<td data-sort-value='{rev:.2f}'>¥{rev:.2f}</td>"
@@ -3088,7 +3105,7 @@ def write_html_dashboard(
         # 构建完整表格
         tbl = (
             "<table class='mini-table w-full'><thead><tr>"
-            "<th>货品名</th><th data-sort-method='number'>订单数</th>"
+            "<th>货品名</th><th>厂家</th><th data-sort-method='number'>订单数</th>"
             "<th data-sort-method='number'>退货率</th><th data-sort-method='number'>销售额</th>"
             "</tr></thead>"
             f"<tbody>{''.join(body)}</tbody></table>"
@@ -3109,6 +3126,14 @@ def write_html_dashboard(
             "</div>"
         )
     sku_return_html = build_high_return_placeholder()
+    def build_zero_return_placeholder() -> str:
+        return (
+            "<div class=\"card\">"
+            "<h3>14天畅销低退货（≥3单，退货率<25%，按>4天口径）</h3>"
+            "<div id=\"skuZeroReturnTable\" class=\"scroll-pane border border-slate-200 rounded-lg\"></div>"
+            "</div>"
+        )
+    sku_zero_html = build_zero_return_placeholder()
 
     sku_stats_margin = {}  # 非代发
     sku_stats_margin_proxy = {}  # 代发
@@ -3325,6 +3350,8 @@ def write_html_dashboard(
         .mini-table tr:last-child td {{ border-bottom: none; }}
         .mini-table tr:hover {{ background: #f8fafc; transition: background 0.1s; }}
         .mini-table td.num {{ font-variant-numeric: tabular-nums; }}
+        .cooldown-badge {{ display:inline-flex; align-items:center; gap:4px; margin-left:8px; padding:1px 6px; border-radius:10px; font-size:11px; color:#334155; background:#e2e8f0; }}
+        .cooldown-badge i {{ color:#64748b; }}
         .scroll-pane {{ max-height: 400px; overflow-y: auto; }}
         .sku-nav {{ display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-bottom:6px; }}
         .sku-nav button {{ padding: 2px 8px; border: 1px solid #ccd5e3; background: #fff; border-radius: 6px; cursor: pointer; font-size: 12px; }}
@@ -3564,6 +3591,7 @@ def write_html_dashboard(
 
     <div class="summary" id="skuSummary">
         {sku_push_html}
+        {sku_zero_html}
         {sku_return_html}
         {low_margin_html}
         <div class="card card-wide" id="manufacturerCard">
@@ -3637,6 +3665,72 @@ def write_html_dashboard(
     }} catch (err) {{
         console.warn('Tablesort 初始化失败', err);
     }}
+
+    // 冷却期徽标：客服视角提示“已联系X天前”，并禁用勾选；运营视角由CSS隐藏
+    (function applyCooldownBadges(){{
+        if (!Array.isArray(rows) || !rows.length) return;
+        const today = new Date();
+        function findLastContact(phone) {{
+            try {{
+                if (window.cooldownCustomers && window.cooldownCustomers[phone]) {{
+                    return String(window.cooldownCustomers[phone]);
+                }}
+                const keys = Object.keys(localStorage || {{}});
+                let latest = null;
+                keys.forEach(k => {{
+                    if (!k || !k.startsWith('followup-')) return;
+                    const ds = k.slice(9);
+                    let d;
+                    try {{ d = new Date(String(ds).replace(/\./g,'-').replace(/\//g,'-')); }} catch(e) {{ d = null; }}
+                    if (!d || isNaN(d)) return;
+                    let map;
+                    try {{ map = JSON.parse(localStorage.getItem(k) || '{{}}'); }} catch(e) {{ map = {{}}; }}
+                    Object.values(map || {{}}).forEach(entry => {{
+                        if (entry && (String(entry.phone||'') === phone)) {{
+                            if (!latest || d > latest) latest = d;
+                        }}
+                    }});
+                }});
+                if (latest) {{
+                    const y = latest.getFullYear();
+                    const m = String(latest.getMonth()+1).padStart(2,'0');
+                    const da = String(latest.getDate()).padStart(2,'0');
+                    return `${{y}}-${{m}}-${{da}}`;
+                }}
+            }} catch(e) {{}}
+            return '';
+        }}
+        rows.forEach(tr => {{
+            try {{
+                const listName = tr.getAttribute('data-list') || '';
+                const phone = tr.getAttribute('data-phone') || tr.getAttribute('data-key') || '';
+                const last = phone ? findLastContact(phone) : '';
+                let days = null;
+                if (last) {{
+                    const lastDate = new Date(String(last).replace(/\./g,'-').replace(/\//g,'-'));
+                    if (!isNaN(lastDate)) {{
+                        days = Math.max(0, Math.floor((today - lastDate) / (24*3600*1000)));
+                    }}
+                }}
+                if (listName !== '冷却期' && days === null) return;
+                const nameCell = tr.querySelector('td:nth-child(3)');
+                if (nameCell) {{
+                    const badge = document.createElement('span');
+                    badge.className = 'cooldown-badge';
+                    badge.title = last ? `上次联系：${{last}}` : '处于冷却期';
+                    badge.innerHTML = days !== null
+                        ? `<i class="fa-solid fa-clock"></i> 冷却期 ${{days}} 天`
+                        : `<i class="fa-solid fa-clock"></i> 冷却期`;
+                    nameCell.appendChild(badge);
+                }}
+                const chk = tr.querySelector('.followup-checkbox');
+                if (chk) {{
+                    chk.disabled = true;
+                    chk.title = days !== null ? `冷却期 ${{days}} 天，暂不重复联系` : '冷却期，暂不重复联系';
+                }}
+            }} catch (e) {{}}
+        }});
+    }})();
 
     const rowCounter = document.getElementById('rowCounter');
     const exportBtn = document.getElementById('exportCsv');
@@ -5914,6 +6008,86 @@ def write_html_dashboard(
       }}
     }} catch (e) {{ /* no-op */ }}
 
+    // 渲染“14天畅销零退货”（≥3单；退货率仅统计>4天的订单）
+    try {{
+      const container = document.getElementById('skuZeroReturnTable');
+      if (container && typeof globalDetails === 'object' && globalDetails) {{
+        const now = new Date(todayStr.replace(/\./g,'-').replace(/\//g,'-'));
+        const cutoff14 = new Date(now.getTime() - 14 * 24 * 3600 * 1000);
+        const endEligible = new Date(now.getTime() - 4 * 24 * 3600 * 1000);
+        const stats = {{}};
+        const add = (sku) => {{ if (!stats[sku]) stats[sku] = {{orders14:0, eligibleOrders:0, eligibleReturns:0, revenue14:0, lastDate:null}}; return stats[sku]; }};
+        const parseDate = (s) => {{
+          if (s === null || s === undefined) return null;
+          const num = (typeof s === 'number') ? s : (/^\d+$/.test(String(s)) ? Number(String(s)) : NaN);
+          if (!isNaN(num)) {{
+            const base = new Date(1899, 11, 30);
+            const t = new Date(base.getTime() + num * 24 * 3600 * 1000);
+            return isNaN(t) ? null : t;
+          }}
+          const t = new Date(String(s).replace(/\./g,'-').replace(/\//g,'-'));
+          return isNaN(t) ? null : t;
+        }};
+        Object.values(globalDetails).forEach(list => {{
+          if (!Array.isArray(list)) return;
+          list.forEach(r => {{
+            const sku = (r['货品名'] || '').trim();
+            if (!sku) return;
+            const platform = String(r['下单平台'] || '').trim();
+            const prod = String(r['商品名称'] || '');
+            const rmk = String(r['备注'] || '');
+            const combined = platform + ' ' + prod + ' ' + sku + ' ' + rmk;
+            if (combined.includes('代发') || combined.includes('样品')) return;
+            const d = parseDate(r['下单时间']);
+            if (!d) return;
+            const refundType = String(r['退款类型'] || '').trim();
+            const returnNo = String(r['退货单号'] || '').trim();
+            const orderNo = String(r['订单号'] || '').trim();
+            const pay = Number(r['付款金额'] || 0) || 0;
+            const isCancel = refundType.includes('取消') || orderNo.includes('取消');
+            const isReturn = !isCancel && ((/退|退货|退款/.test(refundType)) || (returnNo && returnNo !== '/' && returnNo !== '-'));
+            const isValidOrder = pay > 0 && !isCancel;
+            if (d >= cutoff14) {{
+              const sstat = add(sku);
+              if (isValidOrder) {{
+                sstat.orders14 += 1;
+                sstat.revenue14 += Math.max(0, pay);
+                if (!sstat.lastDate || d > sstat.lastDate) sstat.lastDate = d;
+                if (d <= endEligible) {{
+                  sstat.eligibleOrders += 1;
+                  if (isReturn) sstat.eligibleReturns += 1;
+                }}
+              }}
+            }}
+          }});
+        }});
+        const rows = Object.entries(stats).map(([sku, s]) => {{
+          const eligibleRate = s.eligibleOrders > 0 ? (s.eligibleReturns / s.eligibleOrders) : 0;
+          return {{ sku, orders: s.orders14|0, rr: eligibleRate, rev: Number(s.revenue14||0), last: s.lastDate }};
+        }}).filter(x => x.orders >= 3 && x.rr < 0.25);
+        rows.sort((a,b) => b.orders - a.orders || ((b.last && b.last.getTime()) - (a.last && a.last.getTime())) || b.rev - a.rev);
+        if (rows.length) {{
+          const head = "<thead><tr><th>SKU</th><th data-sort-method='number'>14天订单</th><th data-sort-method='number'>退货率(>4天)</th><th>末单日期</th></tr></thead>";
+          const tbodyHtml = rows.map(r => {{
+            const lastStr = (function(d) {{ if (!d) return ''; const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), da=String(d.getDate()).padStart(2,'0'); return `${{y}}-${{m}}-${{da}}`; }})(r.last);
+            const lastDigits = lastStr.replace(/\\D/g,'');
+            return `<tr data-sku=\"${{r.sku}}\"><td>${{r.sku}}</td><td data-sort-value='${{r.orders}}'>${{r.orders}}</td><td data-sort-value='${{r.rr.toFixed(6)}}'>${{(r.rr*100).toFixed(1)}}%</td><td data-sort-value='${{lastDigits}}'>${{lastStr}}</td></tr>`;
+          }}).join('');
+          container.innerHTML = `<table class='mini-table w-full'>${{head}}<tbody id='skuZeroBody'>${{tbodyHtml}}</tbody></table>`;
+          container.querySelectorAll('tbody tr').forEach(tr => {{
+            tr.addEventListener('click', () => {{
+              const sku = tr.getAttribute('data-sku') || '';
+              if (sku) openDetailForSku(sku, 'all');
+            }});
+          }});
+          try {{ new Tablesort(container.querySelector('table')); }} catch (e) {{}}
+        }} else {{
+          container.innerHTML = '<p>暂无符合条件的SKU。</p>';
+        }}
+      }}
+    }} catch (e) {{ /* no-op */ }}
+
+
     // 渲染“高退货预警”（明细>3，退货率>30%）
     try {{
       const container = document.getElementById('skuReturnAlertTable');
@@ -6706,6 +6880,9 @@ def write_html_dashboard(
             <div class="px-3 mt-6 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">SKU分析</div>
             <a href="#" onclick="document.getElementById('roleOperations')?.click(); setTimeout(() => document.getElementById('skuSummary')?.scrollIntoView({{behavior: 'smooth'}}), 100); return false;" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
                 <i class="fa-solid fa-fire w-5 text-center"></i> 加推SKU
+            </a>
+            <a href="#" onclick="document.getElementById('roleOperations')?.click(); setTimeout(() => document.getElementById('skuZeroReturnTable')?.scrollIntoView({{behavior: 'smooth'}}), 100); return false;" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                <i class="fa-solid fa-shield-halved w-5 text-center"></i> 14天零退货
             </a>
             <a href="#" onclick="document.getElementById('roleOperations')?.click(); setTimeout(() => document.getElementById('skuReturnAlertTable')?.scrollIntoView({{behavior: 'smooth'}}), 100); return false;" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
                 <i class="fa-solid fa-triangle-exclamation w-5 text-center"></i> 高退货预警
