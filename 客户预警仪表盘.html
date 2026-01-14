@@ -492,16 +492,16 @@
 
             <div class="px-3 mt-6 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">SKU分析</div>
             <a href="#" onclick="document.getElementById('roleOperations')?.click(); setTimeout(() => document.getElementById('skuSummary')?.scrollIntoView({behavior: 'smooth'}), 100); return false;" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
-                <i class="fa-solid fa-fire w-5 text-center"></i> 加推SKU
+                <i class="fa-solid fa-fire w-5 text-center"></i> 加推SKU（近45天 订单>2 且 退货率<30%）
             </a>
             <a href="#" onclick="document.getElementById('roleOperations')?.click(); setTimeout(() => document.getElementById('skuZeroReturnTable')?.scrollIntoView({behavior: 'smooth'}), 100); return false;" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
-                <i class="fa-solid fa-shield-halved w-5 text-center"></i> 14天零退货
+                <i class="fa-solid fa-shield-halved w-5 text-center"></i> 14天畅销低退货（≥3单，退货率<25%，按>4天口径）
             </a>
             <a href="#" onclick="document.getElementById('roleOperations')?.click(); setTimeout(() => document.getElementById('skuReturnAlertTable')?.scrollIntoView({behavior: 'smooth'}), 100); return false;" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
-                <i class="fa-solid fa-triangle-exclamation w-5 text-center"></i> 高退货预警
+                <i class="fa-solid fa-triangle-exclamation w-5 text-center"></i> 高退货预警（明细>3，退货率>30%）
             </a>
             <a href="#" onclick="document.getElementById('roleOperations')?.click(); setTimeout(() => document.getElementById('lowProfitTable')?.scrollIntoView({behavior: 'smooth'}), 100); return false;" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
-                <i class="fa-solid fa-circle-exclamation w-5 text-center"></i> 低毛利预警
+                <i class="fa-solid fa-circle-exclamation w-5 text-center"></i> 低毛利预警（近60天≥2单且近30天有订单，毛利率<35%）
             </a>
 
             <div class="px-3 mt-6 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">操作</div>
@@ -890,6 +890,32 @@ const searchBox = document.getElementById('searchBox');
     } catch (err) {
         console.warn('Tablesort 初始化失败', err);
     }
+
+    // 标题与侧边栏：去除括号说明，保留原有计数
+    (function normalizeTitles(){
+        try {
+            const cards = document.querySelectorAll('.summary .card h3');
+            cards.forEach(h3 => {
+                const span = h3.querySelector('span');
+                const base = (h3.textContent || '').replace(/\（.*?\）/g,'').replace(/\(.*?\)/g,'').trim();
+                if (span) {
+                    h3.innerHTML = base + ' ' + span.outerHTML;
+                } else {
+                    h3.textContent = base;
+                }
+            });
+            const navLinks = document.querySelectorAll('aside nav a');
+            navLinks.forEach(a => {
+                const icon = a.querySelector('i');
+                const base = (a.textContent || '').replace(/\（.*?\）/g,'').replace(/\(.*?\)/g,'').trim();
+                if (icon) {
+                    a.innerHTML = icon.outerHTML + ' ' + base;
+                } else {
+                    a.textContent = base;
+                }
+            });
+        } catch(e) {}
+    })();
 
     // 冷却期徽标：客服视角提示“已联系X天前”，并禁用勾选；运营视角由CSS隐藏
     (function applyCooldownBadges(){
@@ -3494,7 +3520,7 @@ const searchBox = document.getElementById('searchBox');
           });
           
           if (countSpan) {
-            countSpan.textContent = `(共${visibleCount}款)`;
+            countSpan.textContent = `共${visibleCount}款`;
           }
         }
         
