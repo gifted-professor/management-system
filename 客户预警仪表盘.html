@@ -872,13 +872,41 @@
     })();
     </script>
     <script>
-const searchBox = document.getElementById('searchBox');
+    const searchBox = document.getElementById('searchBox');
     const priorityFilter = document.getElementById('priorityFilter');
     const tagFilter = document.getElementById('tagFilter');
     const platformFilter = document.getElementById('platformFilter');
     const manufacturerFilter = document.getElementById('manufacturerFilter');
     const table = document.getElementById('actionTable');
     const rows = table ? Array.from(table.querySelectorAll('tbody tr')) : [];
+    function filterMainRowsByQuery(q){
+        const query = String(q||'').trim().toLowerCase();
+        if (!rows.length) return;
+        rows.forEach(row => {
+            if (!query) { row.style.display = ''; return; }
+            const rowText = (row.textContent||'').toLowerCase();
+            const idsAttr = (row.getAttribute('data-ids')||'').toLowerCase();
+            const match = rowText.includes(query) || idsAttr.includes(query);
+            row.style.display = match ? '' : 'none';
+        });
+    }
+    function filterSkuCards(q){
+        const query = String(q||'').trim().toLowerCase();
+        ['skuPushTable','skuZeroReturnTable','skuReturnAlertTable'].forEach(cid => {
+            const c = document.getElementById(cid);
+            if (!c) return;
+            const tables = c.querySelectorAll('table');
+            tables.forEach(t => {
+                const tb = t && t.tBodies && t.tBodies[0];
+                if (!tb) return;
+                Array.from(tb.rows).forEach(row => {
+                    if (!query) { row.style.display = ''; return; }
+                    const text = (row.textContent||'').toLowerCase();
+                    row.style.display = text.includes(query) ? '' : 'none';
+                });
+            });
+        });
+    }
     // 启用全局表头点击排序（主表 + 摘要小表）
     try {
         const allTables = Array.from(document.querySelectorAll('table'));
@@ -3563,6 +3591,13 @@ const searchBox = document.getElementById('searchBox');
                 if (customerServiceElements.filters) customerServiceElements.filters.style.display = 'none';
                 // 保留客户列表表格，用于显示搜索结果
                 if (customerServiceElements.table) customerServiceElements.table.style.display = 'table';
+                // 隐藏顶部标题与统计卡片网格
+                try {
+                    const headerBlock = document.querySelector('main .mb-6');
+                    const statsGrid = document.querySelector('main .grid');
+                    if (headerBlock) headerBlock.style.display = 'none';
+                    if (statsGrid) statsGrid.style.display = 'none';
+                } catch(e) {}
             } else {
                 // 客服视角：隐藏SKU分析和运营搜索框，显示所有客服工具
                 if (operationsElements.summary) operationsElements.summary.style.display = 'none';
@@ -3573,6 +3608,13 @@ const searchBox = document.getElementById('searchBox');
                 if (customerServiceElements.listTabs) customerServiceElements.listTabs.style.display = 'block';
                 if (customerServiceElements.filters) customerServiceElements.filters.style.display = 'flex';
                 if (customerServiceElements.table) customerServiceElements.table.style.display = 'table';
+                // 显示顶部标题与统计卡片网格
+                try {
+                    const headerBlock = document.querySelector('main .mb-6');
+                    const statsGrid = document.querySelector('main .grid');
+                    if (headerBlock) headerBlock.style.display = 'block';
+                    if (statsGrid) statsGrid.style.display = 'grid';
+                } catch(e) {}
             }
         }
 
@@ -3601,27 +3643,14 @@ const searchBox = document.getElementById('searchBox');
         const operationsSearchBox = document.getElementById('operationsSearchBox');
         if (operationsSearchBox) {
             operationsSearchBox.addEventListener('input', function() {
-                const searchText = this.value.trim().toLowerCase();
-                const table = document.querySelector('table');
-                const rows = table ? Array.from(table.querySelectorAll('tbody tr')) : [];
-
-                // 使用与客服视角相同的全局搜索逻辑
-                rows.forEach(row => {
-                    if (!searchText) {
-                        // 如果搜索框为空，显示所有行
-                        row.style.display = '';
-                    } else {
-                        // 检查行的文本内容和订单号
-                        const rowText = row.textContent.toLowerCase();
-                        const idsAttr = (row.getAttribute('data-ids') || '').toLowerCase();
-
-                        if (rowText.includes(searchText) || idsAttr.includes(searchText)) {
-                            row.style.display = '';
-                        } else {
-                            row.style.display = 'none';
-                        }
-                    }
-                });
+                filterMainRowsByQuery(this.value);
+                filterSkuCards(this.value);
+            });
+        }
+        if (searchBox) {
+            searchBox.addEventListener('input', function(){
+                filterMainRowsByQuery(this.value);
+                filterSkuCards(this.value);
             });
         }
     })();
