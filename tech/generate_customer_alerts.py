@@ -3128,27 +3128,19 @@ def write_html_dashboard(
         )
         # 返回卡片内容（不包含 summary 包裹层）
         return (
-            "<div class=\"card\"><h3>加推SKU（近45天 订单>2 且 退货率<30%） "
-            f"<span class=\"text-xs font-normal text-slate-400 ml-2\">(共{total_count}款)</span></h3>"
+            "<div class=\"card\"><h3>加推SKU "
+            f"<span class=\"text-xs font-normal text-slate-400 ml-2\">共{total_count}款</span></h3>"
             f"<div id=\"skuPushTable\" class=\"scroll-pane border border-slate-200 rounded-lg\">{tbl}</div></div>"
         )
 
     sku_push_html = build_sku_push_table(global_details, today)
     def build_high_return_placeholder() -> str:
-        return (
-            "<div class=\"card\">"
-            "<h3>高退货预警（明细>3，退货率>30%）</h3>"
-            "<div id=\"skuReturnAlertTable\" class=\"scroll-pane border border-slate-200 rounded-lg\"></div>"
-            "</div>"
-        )
+        return ("<div class=\"card\"><h3>高退货预警</h3>"
+                "<div id=\"skuReturnAlertTable\" class=\"scroll-pane border border-slate-200 rounded-lg\"></div></div>")
     sku_return_html = build_high_return_placeholder()
     def build_zero_return_placeholder() -> str:
-        return (
-            "<div class=\"card\">"
-            "<h3>14天畅销低退货（≥3单，退货率<25%，按>4天口径）</h3>"
-            "<div id=\"skuZeroReturnTable\" class=\"scroll-pane border border-slate-200 rounded-lg\"></div>"
-            "</div>"
-        )
+        return ("<div class=\"card\"><h3>14天畅销低退货</h3>"
+                "<div id=\"skuZeroReturnTable\" class=\"scroll-pane border border-slate-200 rounded-lg\"></div></div>")
     sku_zero_html = build_zero_return_placeholder()
 
     cutoff30 = today - timedelta(days=30)

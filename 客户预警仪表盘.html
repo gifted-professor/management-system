@@ -985,11 +985,10 @@
             });
         });
     }
-    // 启用全局表头点击排序（主表 + 摘要小表）
+    // 仅对主表启用排序，避免初始加载卡顿
     try {
-        const allTables = Array.from(document.querySelectorAll('table'));
-        allTables.forEach(t => { try { new Tablesort(t); } catch (e) {} });
         if (table) {
+            new Tablesort(table);
             const priorityHeader = table.querySelector('th:nth-child(2)');
             if (priorityHeader) { priorityHeader.click(); }
         }
@@ -1020,6 +1019,7 @@
                     a.textContent = base;
                 }
             });
+            /* no-op */
         } catch(e) {}
     })();
 
