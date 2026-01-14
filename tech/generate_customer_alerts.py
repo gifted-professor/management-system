@@ -3002,7 +3002,8 @@ def write_html_dashboard(
                              top_n: int = 50) -> str:
         if not all_details:
             return ""
-        cutoff = today - timedelta(days=max(1, days_window))
+        cutoff45 = today - timedelta(days=max(1, days_window))
+        cutoff30 = today - timedelta(days=30)
         sku_stats: Dict[str, Dict[str, Any]] = {}
         
         for _key, rows in all_details.items():
@@ -3023,7 +3024,7 @@ def write_html_dashboard(
                     # global_details中的字段名已经被标准化为"下单时间"
                     raw_date = r.get("下单时间")
                     od = common_parse_excel_date(raw_date, today)
-                    if not isinstance(od, date) or od < cutoff:
+                    if not isinstance(od, date):
                         continue
                     refund_type = str(r.get("退款类型", "") or "").strip()
                     return_no = str(r.get("退货单号", "") or "").strip()
@@ -3042,17 +3043,22 @@ def write_html_dashboard(
                     is_valid_order = (pay_amount or 0.0) > 0 and not is_cancel
                     stat = sku_stats.get(item)
                     if stat is None:
-                        stat = {"orders": 0.0, "returns": 0.0, "revenue": 0.0, "mcounts": {}}
+                        stat = {"orders": 0.0, "returns": 0.0, "revenue": 0.0, "mcounts30": {}, "mreturns30": {}}
                         sku_stats[item] = stat
-                    if is_valid_order:
-                        stat["orders"] += 1
-                        stat["revenue"] += max(0.0, pay_amount)
+                    if od >= cutoff45:
+                        if is_valid_order:
+                            stat["orders"] += 1
+                            stat["revenue"] += max(0.0, pay_amount)
+                        if is_return:
+                            stat["returns"] += 1
+                    if od >= cutoff30:
                         mfr = str(r.get("厂家", "") or "").strip()
-                        if mfr:
-                            mc = stat["mcounts"]
+                        if mfr and is_valid_order:
+                            mc = stat["mcounts30"]
+                            mr = stat["mreturns30"]
                             mc[mfr] = int(mc.get(mfr, 0)) + 1
-                    if is_return:
-                        stat["returns"] += 1
+                            if is_return:
+                                mr[mfr] = int(mr.get(mfr, 0)) + 1
                 except Exception:
                     continue
         
@@ -3066,18 +3072,31 @@ def write_html_dashboard(
             # 退货率控制在[0,1]
             rr = 0.0 if orders <= 0 else min(1.0, max(0.0, returns / max(1, orders)))
             if orders >= max(1, min_orders) and rr < max_return_rate:
-                # 选取近窗口内该SKU订单最多的厂家
-                mcounts = dict(stat.get("mcounts") or {})
+                mcounts = dict(stat.get("mcounts30") or {})
+                mreturns = dict(stat.get("mreturns30") or {})
                 top_mfr = ""
-                top_cnt = -1
-                for k, v in mcounts.items():
-                    try:
-                        cnt = int(v or 0)
-                    except Exception:
-                        cnt = 0
-                    if cnt > top_cnt:
-                        top_cnt = cnt
-                        top_mfr = k
+                if mcounts:
+                    all_ge3 = all((int(v or 0) >= 3) for v in mcounts.values())
+                    if all_ge3:
+                        best_key = None
+                        best_rr = None
+                        best_orders = -1
+                        for k, v in mcounts.items():
+                            cnt = int(v or 0)
+                            ret = int(mreturns.get(k, 0) or 0)
+                            rrate = (ret / max(1, cnt)) if cnt > 0 else 1.0
+                            if (best_rr is None) or (rrate < best_rr) or (rrate == best_rr and cnt > best_orders):
+                                best_rr = rrate
+                                best_orders = cnt
+                                best_key = k
+                        top_mfr = best_key or ""
+                    else:
+                        top_cnt = -1
+                        for k, v in mcounts.items():
+                            cnt = int(v or 0)
+                            if cnt > top_cnt:
+                                top_cnt = cnt
+                                top_mfr = k
                 rows.append((sku, top_mfr, orders, rr, float(stat.get("revenue", 0.0) or 0.0)))
         if not rows:
             # 即使没有数据也显示卡片和提示
@@ -3135,6 +3154,8 @@ def write_html_dashboard(
         )
     sku_zero_html = build_zero_return_placeholder()
 
+    cutoff30 = today - timedelta(days=30)
+    cutoff60 = today - timedelta(days=60)
     sku_stats_margin = {}  # 非代发
     sku_stats_margin_proxy = {}  # 代发
     for _key, rows in (global_details or {}).items():
@@ -3171,8 +3192,8 @@ def write_html_dashboard(
                 # global_details中的字段名已经被标准化
                 rev_val = common_to_float(r.get("付款金额"))
                 pay_val = common_to_float(r.get("打款金额"))
-                # 放宽筛选条件：只要有收款即可，打款为0的订单也记录
-                if rev_val <= 0:
+                # 收款额或打款金额为0的都不计入，避免失真；同时不含代发的综合统计在后续通过 is_proxy 分组控制
+                if rev_val <= 0 or pay_val <= 0:
                     continue
                 
                 # 获取下单日期
@@ -3183,11 +3204,15 @@ def write_html_dashboard(
                 target_dict = sku_stats_margin_proxy if is_proxy else sku_stats_margin
                 stat = target_dict.get(item)
                 if stat is None:
-                    stat = {"rev": 0.0, "cost": 0.0, "cnt": 0, "last_date": None}
+                    stat = {"rev": 0.0, "cost": 0.0, "cnt": 0, "cnt_30": 0, "cnt_60": 0, "last_date": None}
                     target_dict[item] = stat
                 stat["rev"] += rev_val
                 stat["cost"] += pay_val
                 stat["cnt"] += 1
+                if order_date and order_date >= cutoff60:
+                    stat["cnt_60"] += 1
+                if order_date and order_date >= cutoff30:
+                    stat["cnt_30"] += 1
                 # 记录最后一单日期
                 if order_date:
                     if stat["last_date"] is None or order_date > stat["last_date"]:
@@ -3198,7 +3223,9 @@ def write_html_dashboard(
     def build_alert_list(stats_dict):
         result = []
         for sku, st in stats_dict.items():
-            if st["cnt"] <= 1:
+            # 时间窗口要求：近60天≥3单、近30天有订单，且末单日期在近30天内
+            last_date_obj = st.get("last_date")
+            if (st.get("cnt_60", 0) < 2) or (st.get("cnt_30", 0) < 1) or (not last_date_obj) or (last_date_obj < cutoff30):
                 continue
             avg_r = st["rev"] / st["cnt"]
             avg_c = st["cost"] / st["cnt"]
@@ -3267,7 +3294,7 @@ def write_html_dashboard(
         )
         
         low_margin_html = (
-            "<div class=\"card\"><h3>低毛利预警（毛利率<35%，明细>1）</h3>"
+            "<div class=\"card\"><h3>低毛利预警（近60天≥2单且近30天有订单，毛利率<35%）</h3>"
             f"{filter_html}"
             f"<div class=\"scroll-pane border border-slate-200 rounded-lg\">{tbl}</div></div>"
         )
