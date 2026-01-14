@@ -465,6 +465,65 @@
             color: #94a3b8;
             font-size: 12px;
         }
+        /* 优化主表列宽与换行规则 */
+        #actionTable {
+            table-layout: fixed;
+            width: 100%;
+        }
+        #actionTable thead th,
+        #actionTable tbody td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        /* 列宽分配：按出现顺序设置更紧凑的列 */
+        #actionTable thead th:nth-child(1), /* 标记完成 */
+        #actionTable tbody td:nth-child(1) { width: 64px; }
+        #actionTable thead th:nth-child(2), /* 优先分 */
+        #actionTable tbody td:nth-child(2) { width: 80px; text-align: right; }
+        #actionTable thead th:nth-child(3), /* 姓名 */
+        #actionTable tbody td:nth-child(3) { width: 100px; }
+        #actionTable thead th:nth-child(4), /* 主要平台 */
+        #actionTable tbody td:nth-child(4) { width: 110px; }
+        #actionTable thead th:nth-child(5), /* 手机号 */
+        #actionTable tbody td:nth-child(5) { width: 130px; }
+        #actionTable thead th:nth-child(6), /* 最近下单日 */
+        #actionTable tbody td:nth-child(6) { width: 120px; }
+        #actionTable thead th:nth-child(7), /* 偏好单品 */
+        #actionTable tbody td:nth-child(7) { width: 130px; }
+        #actionTable thead th:nth-child(8), /* 有效订单数 */
+        #actionTable tbody td:nth-child(8) { width: 110px; text-align: right; }
+        #actionTable thead th:nth-child(9), /* 退货率 */
+        #actionTable tbody td:nth-child(9) { width: 100px; text-align: right; }
+        #actionTable thead th:nth-child(10), /* 未复购天数 */
+        #actionTable tbody td:nth-child(10) { width: 110px; text-align: right; }
+        #actionTable thead th:nth-child(11), /* 平均客单价 */
+        #actionTable tbody td:nth-child(11) { width: 120px; text-align: right; }
+        #actionTable thead th:nth-child(12), /* 促单理由 */
+        #actionTable tbody td:nth-child(12) {
+            white-space: normal;
+            width: auto;
+        }
+        /* 隐藏主表中不需要的列（风险标签、推荐动作、价值层级） */
+        .mini-table td[data-header="风险标签"],
+        .mini-table td[data-header="推荐动作"],
+        .mini-table td[data-header="价值层级"],
+        #actionTable td[data-header="风险标签"],
+        #actionTable td[data-header="推荐动作"],
+        #actionTable td[data-header="价值层级"] { display: none; }
+        .ops-hit-box {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #475569;
+        }
+        .ops-hit-box button {
+            margin-left: 6px;
+            border: 1px solid #ccd5e3;
+            background: #fff;
+            border-radius: 6px;
+            padding: 3px 10px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans h-screen flex overflow-hidden role-service">
@@ -880,13 +939,32 @@
     const table = document.getElementById('actionTable');
     const rows = table ? Array.from(table.querySelectorAll('tbody tr')) : [];
     function filterMainRowsByQuery(q){
-        const query = String(q||'').trim().toLowerCase();
-        if (!rows.length) return;
-        rows.forEach(row => {
+        const raw = String(q||'').trim();
+        const query = raw.toLowerCase();
+        const qDigits = raw.replace(/\D/g,'');
+        const t = document.getElementById('actionTable');
+        const currentRows = t ? Array.from(t.querySelectorAll('tbody tr')) : [];
+        currentRows.forEach(row => {
             if (!query) { row.style.display = ''; return; }
-            const rowText = (row.textContent||'').toLowerCase();
+            const cells = Array.from(row.cells || []);
+            let rowText = (row.textContent||'').toLowerCase();
+            let rowDigits = (row.textContent||'').replace(/\D/g,'');
+            // 兼容 data-sort-value 中的数值（如手机号、日期被用于排序但未渲染完整文本）
+            cells.forEach(td => {
+                const sv = td.getAttribute('data-sort-value') || '';
+                if (sv) {
+                    rowText += ' ' + String(sv).toLowerCase();
+                    rowDigits += String(sv).replace(/\D/g,'');
+                }
+            });
             const idsAttr = (row.getAttribute('data-ids')||'').toLowerCase();
-            const match = rowText.includes(query) || idsAttr.includes(query);
+            const phoneAttr = (row.getAttribute('data-phone')||'').toLowerCase();
+            const phoneDigits = (row.getAttribute('data-phone')||'').replace(/\D/g,'');
+            const match =
+              rowText.includes(query) ||
+              idsAttr.includes(query) ||
+              phoneAttr.includes(query) ||
+              (!!qDigits && (phoneDigits.includes(qDigits) || rowDigits.includes(qDigits)));
             row.style.display = match ? '' : 'none';
         });
     }
@@ -941,6 +1019,31 @@
                 } else {
                     a.textContent = base;
                 }
+            });
+        } catch(e) {}
+    })();
+
+    // 隐藏主列表的“风险标签”“推荐动作”表头
+    (function hideUnwantedHeaders(){
+        try {
+            const table = document.getElementById('actionTable');
+            if (!table) return;
+            const toHide = ['风险标签','推荐动作','价值层级'];
+            const ths = Array.from(table.querySelectorAll('thead th'));
+            const idxs = [];
+            ths.forEach((th, i) => {
+                const txt = (th.textContent||'').trim();
+                if (toHide.includes(txt)) {
+                    th.style.display = 'none';
+                    idxs.push(i);
+                }
+            });
+            const bodyRows = Array.from(table.querySelectorAll('tbody tr'));
+            bodyRows.forEach(tr => {
+                idxs.forEach(i => {
+                    const td = tr.children[i];
+                    if (td) td.style.display = 'none';
+                });
             });
         } catch(e) {}
     })();
@@ -3645,6 +3748,162 @@
             operationsSearchBox.addEventListener('input', function() {
                 filterMainRowsByQuery(this.value);
                 filterSkuCards(this.value);
+                const summary = document.querySelector('.summary');
+                const q = String(this.value||'').trim();
+                if (summary) {
+                    summary.style.display = q ? 'none' : 'grid';
+                }
+                // 输入为空：清空提示并移除合成行
+                if (!q) {
+                    try {
+                        const t = document.getElementById('actionTable');
+                        const tbody = t ? t.querySelector('tbody') : null;
+                        if (tbody) Array.from(tbody.querySelectorAll('tr.synthetic-row')).forEach(r => r.remove());
+                        const opsBox = document.getElementById('opsHitBox');
+                        if (opsBox) opsBox.innerHTML = '';
+                    } catch(e) {}
+                    return;
+                }
+                if (q) {
+                    const actionTableEl = document.getElementById('actionTable');
+                    actionTableEl?.scrollIntoView({behavior:'smooth', block:'start'});
+                }
+                // 若无命中，则尝试从全库生成一条合成行供筛选查看
+                try {
+                    const t = document.getElementById('actionTable');
+                    const tbody = t ? t.querySelector('tbody') : null;
+                    if (!tbody) return;
+                    Array.from(tbody.querySelectorAll('tr.synthetic-row')).forEach(r => r.remove());
+                    const visible = Array.from(tbody.querySelectorAll('tr')).some(r => r.style.display !== 'none');
+                    // 准备命中提示盒
+                    let opsBox = document.getElementById('opsHitBox');
+                    if (!opsBox) {
+                        opsBox = document.createElement('div');
+                        opsBox.id = 'opsHitBox';
+                        opsBox.className = 'ops-hit-box';
+                        const container = document.querySelector('.operations-search-container');
+                        if (container) container.appendChild(opsBox);
+                    }
+                    opsBox.innerHTML = '';
+                    const raw = String(q||'').trim();
+                    const qDigits = raw.replace(/\D/g,'');
+                    const alld = (typeof globalDetails === 'object' && globalDetails) ? globalDetails : (window.globalDetails || {});
+                    let bestKey = '';
+                    let det = null;
+                    // 优先按手机号匹配
+                    if (qDigits && qDigits.length >= 7) {
+                        for (const [k, list] of Object.entries(alld)) {
+                            if (!Array.isArray(list)) continue;
+                            const hit = list.some(r => String(r['手机号']||'').replace(/\D/g,'') === qDigits);
+                            if (hit) { bestKey = String(k); det = list; break; }
+                        }
+                    }
+                    // 其次按文本包含匹配
+                    if (!det) {
+                        let bestCount = 0;
+                        for (const [k, list] of Object.entries(alld)) {
+                            if (!Array.isArray(list)) continue;
+                            let c = 0;
+                            list.forEach(r => {
+                                let blob = '';
+                                Object.keys(r||{}).forEach(kk => {
+                                    const vv = r[kk];
+                                    if (vv === null || vv === undefined) return;
+                                    if (typeof vv === 'string' || typeof vv === 'number') blob += ' ' + String(vv);
+                                });
+                                const txt = blob.toLowerCase();
+                                if (txt.includes(raw.toLowerCase())) c++;
+                            });
+                            if (c > bestCount) { bestCount = c; bestKey = k; det = list; }
+                        }
+                    }
+                    if (!det || !Array.isArray(det) || det.length === 0) return;
+                    // 统计信息
+                    let name = det[0]['姓名'] || '';
+                    const phone = det[0]['手机号'] || (qDigits||'');
+                    let lastDateStr = '';
+                    let lastDigits = 0;
+                    const platCount = {};
+                    const itemCount = {};
+                    let orders = 0, returns = 0, sumPay = 0.0;
+                    det.forEach(r => {
+                        const p = (r['下单平台'] || '').trim();
+                        if (p) platCount[p] = (platCount[p]||0) + 1;
+                        const it = (r['货品名'] || '').trim();
+                        if (it) itemCount[it] = (itemCount[it]||0) + 1;
+                        const d = String(r['下单时间']||'').replace(/\D/g,'').slice(0,8);
+                        if (d && d.length === 8) {
+                            const n = parseInt(d,10);
+                            if (n > lastDigits) { lastDigits = n; lastDateStr = String(r['下单时间']||''); }
+                        }
+                        const pay = parseFloat(String(r['付款金额']||'0').replace(/[^\d.]/g,'')) || 0;
+                        const refundType = String(r['退款类型']||'');
+                        const returnNo = String(r['退货单号']||'');
+                        const isCancel = refundType.includes('取消');
+                        const isReturn = !isCancel && (/(退|退货|退款)/.test(refundType) || (returnNo && returnNo !== '/' && returnNo !== '-'));
+                        if (pay > 0 && !isCancel) { orders += 1; sumPay += pay; }
+                        if (isReturn) returns += 1;
+                    });
+                    const rr = orders > 0 ? (returns/orders) : 0;
+                    const aov = orders > 0 ? (sumPay/orders) : 0;
+                    const topPlat = Object.keys(platCount).reduce((a,b)=> (platCount[a]||0) >= (platCount[b]||0) ? a : b, Object.keys(platCount)[0]||'');
+                    const favItem = Object.keys(itemCount).reduce((a,b)=> (itemCount[a]||0) >= (itemCount[b]||0) ? a : b, Object.keys(itemCount)[0]||'');
+                    const idsSet = new Set();
+                    det.forEach(r => {
+                        ['订单号','退货单号'].forEach(kf => {
+                            const v = String(r[kf]||'').trim();
+                            if (!v) return;
+                            idsSet.add(v);
+                            const d = v.replace(/\D/g,'');
+                            if (d.length >= 6) idsSet.add(d);
+                        });
+                    });
+                    const idsAttr = Array.from(idsSet).join('|').toLowerCase();
+                    // 构造合成行
+                    const tr = document.createElement('tr');
+                    tr.className = 'synthetic-row';
+                    tr.setAttribute('data-key', bestKey||phone);
+                    tr.setAttribute('data-phone', phone);
+                    tr.setAttribute('data-name', name);
+                    tr.setAttribute('data-score', '');
+                    tr.setAttribute('data-bucket', '负分');
+                    tr.setAttribute('data-platform', topPlat);
+                    tr.setAttribute('data-last-order', lastDateStr);
+                    tr.setAttribute('data-ids', idsAttr);
+                    const headers = ['标记完成','优先分','姓名','主要平台','手机号','最近下单日','偏好单品','有效订单数','退货率','未复购天数','平均客单价','促单理由'];
+                    const values = ['', name, topPlat, phone, lastDateStr, favItem, String(orders||''), (rr*100).toFixed(1)+'%', '', aov.toFixed(2), ''];
+                    headers.forEach((h,i) => {
+                        const td = document.createElement('td');
+                        td.setAttribute('data-header', h);
+                        if (i===0) {
+                            const cb = document.createElement('input');
+                            cb.type='checkbox'; cb.className='followup-checkbox';
+                            cb.setAttribute('data-key', bestKey||phone);
+                            cb.setAttribute('data-phone', phone);
+                            cb.setAttribute('data-name', name);
+                            td.appendChild(cb);
+                        } else {
+                            td.textContent = values[i-1] || '';
+                            if (h==='最近下单日' && lastDigits) td.setAttribute('data-sort-value', String(lastDigits));
+                            if (h==='有效订单数') td.setAttribute('data-sort-value', String(orders||0));
+                            if (h==='退货率') td.setAttribute('data-sort-value', String(rr||0));
+                            if (h==='平均客单价') td.setAttribute('data-sort-value', String(aov||0));
+                        }
+                        tr.appendChild(td);
+                    });
+                    if (!visible) tbody.appendChild(tr);
+                    // 更新运营搜索提示盒
+                    if (opsBox) {
+                        opsBox.textContent = '全库命中：' + (name || phone || bestKey);
+                        const btn = document.createElement('button');
+                        btn.textContent = '查看明细';
+                        btn.addEventListener('click', () => {
+                            const keyUse = bestKey || phone;
+                            openDetailForKey(keyUse, name || '');
+                        });
+                        opsBox.appendChild(btn);
+                    }
+                } catch(e) {}
             });
         }
         if (searchBox) {

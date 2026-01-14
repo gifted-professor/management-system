@@ -2599,15 +2599,12 @@ def write_html_dashboard(
         "主要平台",
         "手机号",
         "最近下单日",
-        "风险标签",
-        "推荐动作",
-        "促单理由",
-        "价值层级",
         "偏好单品",
         "有效订单数",
         "退货率",
         "未复购天数",
         "平均客单价",
+        "促单理由",
     ]
     numeric_headers = {
         "优先分",
@@ -4723,7 +4720,7 @@ def write_html_dashboard(
                     tr.setAttribute('data-category-cycle', '');
                     tr.setAttribute('data-ids', idsAttr);
 
-                    const headers = ['标记完成','优先分','姓名','主要平台','手机号','最近下单日','风险标签','推荐动作','偏好单品','有效订单数','退货率','未复购天数','平均客单价'];
+                    const headers = ['标记完成','优先分','姓名','主要平台','手机号','最近下单日','偏好单品','有效订单数','退货率','未复购天数','平均客单价','促单理由'];
                     const scoreDisp = meta && typeof meta.priority_score === 'number' ? String(Math.round(meta.priority_score)) : '';
                     const valueLevel = meta && meta.customer_value ? meta.customer_value : '';
                     const ords = meta && typeof meta.orders === 'number' ? String(meta.orders) : String(det.length || '');
@@ -4737,13 +4734,12 @@ def write_html_dashboard(
                         topPlat || (meta && meta.platform ? meta.platform : ''),    // 主要平台
                         phone || '',      // 手机号
                         lastDateStr || (meta && meta.last_order ? meta.last_order : ''),
-                        '全库命中(未纳入触达)', // 风险标签
-                        '',               // 推荐动作
                         fav,              // 偏好单品
                         ords,             // 有效订单数
                         rr,               // 退货率
                         ds,               // 未复购天数
                         aov,              // 平均客单价
+                        '',               // 促单理由（合成行留空）
                     ];
                     // 复用打勾逻辑
                     const cb = document.createElement('input');
@@ -4893,8 +4889,9 @@ def write_html_dashboard(
         const hitBox = document.getElementById('globalHitBox');
         if (hitBox) {{
             hitBox.innerHTML = '';
-            if (search) {{
-                const key = resolveGlobalKey(search);
+            const unifiedQuery = (document.getElementById('operationsSearchBox')?.value || document.getElementById('searchBox')?.value || '').trim();
+            if (unifiedQuery) {{
+                const key = resolveGlobalKey(unifiedQuery);
                 if (key) {{
                     const name = (globalDetails[key] && globalDetails[key].length) ? (globalDetails[key][0]['姓名'] || '') : '';
                     const btn = document.createElement('button');
@@ -4912,7 +4909,7 @@ def write_html_dashboard(
                     hitBox.appendChild(btn);
                 }} else {{
                     // 全字段模糊匹配（遍历整行文本，规格化后比较，不限于单一列）
-                    const qn = normAlphaNum(search);
+                    const qn = normAlphaNum(unifiedQuery);
                     let count = 0;
                     try {{
                         Object.values(globalDetails || {{}}).forEach(list => {{
@@ -4942,9 +4939,9 @@ def write_html_dashboard(
                         btn.style.borderRadius = '6px';
                         btn.style.padding = '3px 10px';
                         btn.style.cursor = 'pointer';
-                        btn.addEventListener('click', () => openDetailForSkuQuery(search));
+                        btn.addEventListener('click', () => openDetailForSkuQuery(unifiedQuery));
                         const span = document.createElement('span');
-                        span.textContent = `全库货品命中：含"${{search}}"的订单 ${{count}} 条`;
+                        span.textContent = `全库货品命中：含"${{unifiedQuery}}"的订单 ${{count}} 条`;
                         hitBox.appendChild(span);
                         hitBox.appendChild(btn);
                     }}
@@ -5014,7 +5011,7 @@ def write_html_dashboard(
             }}
         }}
 
-        const searchRaw = searchBox ? searchBox.value.trim() : '';
+        const searchRaw = (document.getElementById('operationsSearchBox')?.value || (searchBox ? searchBox.value : '') || '').trim();
         if (searchRaw && searchRaw.length >= 2 && productSearchIndex && typeof productSearchIndex === 'object') {{
             const normalized = normAlphaNum(searchRaw);
             let isProductSearch = false;
