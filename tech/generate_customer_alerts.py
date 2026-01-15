@@ -1828,11 +1828,82 @@ def build_alert_rows(
         # 换货订单检查（在所有boost之前）
         # 检查客户订单中是否有换货，如果有换货则计算有效订单数
         exchange_count = 0
+        recent_return_improved = False
+        recent_return_rate: Optional[float] = None
+        recent_return_valid_orders = 0
+        recent_return_total_orders = 0
+        recent_window_orders = int(config_model.defaults.get("recent_return_window_orders", 5))
+        recent_min_orders = int(config_model.defaults.get("recent_return_min_orders", 3))
+        recent_good_max = float(config_model.defaults.get("recent_return_good_max", 0.10))
+        recent_high_return_penalty = float(
+            config_model.defaults.get("recent_high_return_penalty", -20)
+        )
         if hasattr(stats, 'order_details') and stats.order_details:
+            recent_orders_map: Dict[str, Dict[str, Any]] = {}
             for detail in stats.order_details:
                 refund_type = str(detail.get("退款类型", "") or "").strip()
                 if "换" in refund_type:
                     exchange_count += 1
+                order_no = (
+                    str(
+                        detail.get("订单号")
+                        or detail.get("订单编号")
+                        or detail.get("订单")
+                        or ""
+                    ).strip()
+                )
+                if not order_no:
+                    continue
+                date_raw = (
+                    detail.get("下单时间")
+                    or detail.get("下单日期")
+                    or detail.get("下单日")
+                    or ""
+                )
+                date_digits = "".join(ch for ch in str(date_raw) if ch.isdigit())
+                date_int = 0
+                if len(date_digits) >= 8:
+                    try:
+                        date_int = int(date_digits[:8])
+                    except Exception:
+                        date_int = 0
+                return_no = str(detail.get("退货单号", "") or "").strip()
+                is_cancel = "取消" in refund_type
+                is_return = (not is_cancel) and (
+                    ("退" in refund_type)
+                    or ("退款" in refund_type)
+                    or (return_no and return_no not in ("/", "-", "None"))
+                )
+                existing = recent_orders_map.get(order_no)
+                if existing is None:
+                    recent_orders_map[order_no] = {
+                        "date": date_int,
+                        "cancel": bool(is_cancel),
+                        "return": bool(is_return),
+                    }
+                else:
+                    if date_int > int(existing.get("date") or 0):
+                        existing["date"] = date_int
+                    existing["cancel"] = bool(existing.get("cancel")) or bool(is_cancel)
+                    existing["return"] = bool(existing.get("return")) or bool(is_return)
+
+            if recent_orders_map and recent_window_orders > 0:
+                recent_orders = sorted(
+                    recent_orders_map.values(),
+                    key=lambda x: int(x.get("date") or 0),
+                    reverse=True,
+                )[:recent_window_orders]
+                recent_return_total_orders = len(recent_orders)
+                recent_valid = [o for o in recent_orders if not o.get("cancel")]
+                recent_return_valid_orders = len(recent_valid)
+                if recent_return_valid_orders > 0:
+                    recent_returns = sum(1 for o in recent_valid if o.get("return"))
+                    recent_return_rate = recent_returns / recent_return_valid_orders
+                    if (
+                        recent_return_valid_orders >= recent_min_orders
+                        and recent_return_rate <= recent_good_max
+                    ):
+                        recent_return_improved = True
 
         # 计算有效订单数（排除换货）
         effective_orders = stats.orders - exchange_count
@@ -1874,7 +1945,9 @@ def build_alert_rows(
         return_rate_boost = 0
         # 强力惩罚高退货：≥49% 直接重扣，避免高退货客户顶到前面
         if return_rate is not None and return_rate >= 0.49:
-            return_rate_boost = -80
+            return_rate_boost = recent_high_return_penalty if recent_return_improved else -80
+            if recent_return_improved and "退货改善" not in tags:
+                tags.append("退货改善")
         elif return_rate is not None and return_rate <= 0.0:
             return_rate_boost = 20  # 零退货
         elif return_rate is not None and return_rate < 0.1:
@@ -2047,6 +2120,10 @@ def build_alert_rows(
             "favorite": top_item or "",
             "orders": int(stats.orders),
             "return_rate": float(return_rate) if isinstance(return_rate, (int, float)) else None,
+            "recent_return_rate": float(recent_return_rate) if isinstance(recent_return_rate, (int, float)) else None,
+            "recent_return_valid_orders": int(recent_return_valid_orders) if isinstance(recent_return_valid_orders, int) else 0,
+            "recent_return_total_orders": int(recent_return_total_orders) if isinstance(recent_return_total_orders, int) else 0,
+            "recent_return_improved": bool(recent_return_improved),
             "days": int(days_since) if isinstance(days_since, int) else None,
             "aov": float(aov_value) if isinstance(aov_value, (int, float)) else None,
             "platform": top_platform or "",
@@ -2126,7 +2203,12 @@ def build_alert_rows(
                 if isinstance(days_since, int) and days_since < max(0, exclude_recent_days):
                     continue
                 # Exclude customers with a very high return rate from the action list
-                if (not allow_high_return) and isinstance(return_rate, (int, float)) and return_rate >= 0.49:
+                if (
+                    (not allow_high_return)
+                    and isinstance(return_rate, (int, float))
+                    and return_rate >= 0.49
+                    and (not recent_return_improved)
+                ):
                     continue
                 # Enforce single-order inclusion policy for action list
                 if stats.orders == 1 and not config_model.allow_single_order(last_order, today):
