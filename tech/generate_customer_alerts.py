@@ -404,7 +404,7 @@ def load_contact_log_extended(path: Path, today: date) -> Tuple[Dict[str, date],
     return contact_map, info_map
 
 
-def fetch_feishu_contact_log(app_token: str, table_id: str, today: date, *, token: Optional[str] = None, view_id: Optional[str] = None) -> Dict[str, date]:
+def fetch_feishu_contact_log(app_token: str, table_id: str, today: date, *, token: Optional[str] = None, view_id: Optional[str] = None) -> Tuple[Dict[str, date], Dict[str, Dict[str, Any]]]:
     """从飞书多维表读取联系记录。
 
     为避免视图筛选丢失最新数据，默认“同时”读取：指定视图 + 全表，然后按手机号取最近日期。
@@ -414,7 +414,7 @@ def fetch_feishu_contact_log(app_token: str, table_id: str, today: date, *, toke
       - view：仅指定视图
     """
     if not app_token or not table_id or not token:
-        return {}
+        return {}, {}
 
     base = f'https://open.feishu.cn/open-apis/bitable/v1/apps/{app_token}/tables/{table_id}/records'
     headers = {
@@ -422,8 +422,9 @@ def fetch_feishu_contact_log(app_token: str, table_id: str, today: date, *, toke
         'Content-Type': 'application/json; charset=utf-8',
     }
 
-    def _fetch_once(v_id: Optional[str]) -> Dict[str, date]:
+    def _fetch_once(v_id: Optional[str]) -> Tuple[Dict[str, date], Dict[str, Dict[str, Any]]]:
         contact_map: Dict[str, date] = {}
+        info_map: Dict[str, Dict[str, Any]] = {}
         params = {'page_size': 200}
         if v_id:
             params['view_id'] = v_id
@@ -518,33 +519,154 @@ def fetch_feishu_contact_log(app_token: str, table_id: str, today: date, *, toke
                             contact_date = common_parse_excel_date(date_raw, today)
                     else:
                         contact_date = common_parse_excel_date(date_raw, today)
-                if phone and contact_date:
-                    prev = contact_map.get(phone)
-                    if prev is None or contact_date > prev:
-                        contact_map[phone] = contact_date
+                
+                # 提取扩展信息
+                info: Dict[str, Any] = info_map.get(phone) or {}
+                
+                # 1. 负责人/员工
+                emp_val = (fields.get('联系人') or fields.get('负责人') or fields.get('跟进人') or fields.get('employee') or fields.get('Employee'))
+                if emp_val:
+                    info['employee'] = str(emp_val).strip()
+                
+                # 2. 平台
+                plat_val = (fields.get('联系平台') or fields.get('主要平台') or fields.get('平台') or fields.get('Platform') or fields.get('platform'))
+                if plat_val:
+                    info['platform'] = str(plat_val).strip()
+
+                # 3. 回复状态/回复等级
+                # 注意：飞书 API 返回的单选/多选字段可能是列表或字典结构，需要特殊处理
+                status_raw = (
+                    fields.get('回复等级') 
+                    or fields.get('回复状态') 
+                    or fields.get('联系进程') 
+                    or fields.get('状态标签') 
+                    or fields.get('Status') 
+                    or fields.get('status')
+                )
+                
+                # Debug log for specific check
+                emp_name_check = str(fields.get('联系人') or '')
+                phone_check = str(fields.get('手机号') or '')
+                # 模糊匹配一下可能的关键人物
+                # if '谢' in str(fields) or '13' in phone_check: 
+                #     # 只打印少量样本，避免刷屏，或者针对特定特征
+                #     # 这里为了排查谢凌昊，直接打印所有含“谢”字的记录的 status_raw
+                #     if '谢' in str(fields):
+                #          print(f"DEBUG_RECORD: Name/Fields='谢' | Phone={phone} | Date={date_raw} | StatusRaw={status_raw}")
+
+
+                if status_raw:
+                    # 如果是 list (多选/单选返回数组)，取第一个
+                    if isinstance(status_raw, list) and len(status_raw) > 0:
+                        status_val = status_raw[0]
+                        # 如果是对象（有些情况返回 {id:..., text:...}），取 text
+                        if isinstance(status_val, dict):
+                             status_val = status_val.get('text') or str(status_val)
+                        else:
+                             status_val = str(status_val)
+                    # 如果是 dict (单选返回对象)
+                    elif isinstance(status_raw, dict):
+                         status_val = status_raw.get('text') or str(status_raw)
+                    else:
+                        status_val = str(status_raw)
+                    
+                    if status_val:
+                        info['status'] = status_val.strip()
+                        # if '19180258071' in str(phone):
+                        #     print(f"DEBUG_EXTRACT: Phone={phone} | StatusVal={status_val} | InfoStatus={info.get('status')}")
+                
+                # 4. 备注
+                note_val = (fields.get('备注') or fields.get('Note') or fields.get('note'))
+                if note_val:
+                    info['note'] = str(note_val).strip()
+
+                # 5. 下次联系日
+                next_val = (fields.get('下一次联系日') or fields.get('下次联系日') or fields.get('NextContact') or fields.get('next_contact'))
+                if next_val:
+                     nd = common_parse_excel_date(next_val, today)
+                     if nd:
+                         info['next_contact'] = nd
+
+                # 6. 不再联系
+                opt_val = (fields.get('不再联系') or fields.get('免打扰') or fields.get('OptOut') or fields.get('optout'))
+                if opt_val:
+                     val_str = str(opt_val).strip().lower()
+                     info['optout'] = val_str in ("是", "yes", "true", "1", "on")
+
+                # 7. 愉快值
+                happy_val = (fields.get('愉快值') or fields.get('满意度') or fields.get('Happiness') or fields.get('happiness'))
+                if happy_val is not None:
+                    try:
+                        info['happiness'] = float(happy_val)
+                    except Exception:
+                        pass
+
+                if phone:
+                    # 如果有新的 info 且非空，更新 map
+                    if info:
+                        # 简单的合并策略：覆盖旧的
+                        info_map[phone] = info
+
+                    if contact_date:
+                        prev = contact_map.get(phone)
+                        if prev is None or contact_date > prev:
+                            contact_map[phone] = contact_date
+            
             page_token = data.get('data', {}).get('page_token')
             if not data.get('data', {}).get('has_more'):
                 break
-        return contact_map
+        
+        # DEBUG: Check info_map before return
+        # if '19180258071' in info_map:
+        #      print(f"DEBUG_FETCH_ONCE_END: v_id={v_id} | Phone=19180258071 | Info={info_map['19180258071']}")
+
+        return contact_map, info_map
 
     mode = (os.getenv('FEISHU_CONTACT_FETCH_MODE') or 'both').strip().lower()
     merged: Dict[str, date] = {}
+    merged_info: Dict[str, Dict[str, Any]] = {}
+
     if mode in ('view', 'both') and view_id:
-        view_map = _fetch_once(view_id)
+        view_map, view_info = _fetch_once(view_id)
         for ph, dt in view_map.items():
             if ph not in merged or dt > merged[ph]:
                 merged[ph] = dt
+        # 合并 info
+        for ph, info in view_info.items():
+            # 如果已有，更新部分字段？这里简单覆盖
+            if ph not in merged_info:
+                merged_info[ph] = info
+            else:
+                merged_info[ph].update(info)
+
         if not view_map:
             try:
                 print(f"ℹ️  视图 {view_id} 未返回联系人或为空。")
             except Exception:
                 pass
     if mode in ('all', 'both'):
-        all_map = _fetch_once(None)
+        all_map, all_info = _fetch_once(None)
         for ph, dt in all_map.items():
             if ph not in merged or dt > merged[ph]:
                 merged[ph] = dt
-    return merged
+        # 合并 info
+        for ph, info in all_info.items():
+            # if '19180258071' in str(ph):
+            #      print(f"DEBUG_MERGE_ALL: Phone={ph!r} (len={len(ph)}) | Info={info} | InMerged={ph in merged_info}")
+
+            if ph not in merged_info:
+                merged_info[ph] = info
+            else:
+                # 只有当新日期的联系记录更近时，可能才需要覆盖 info？
+                # 但这里简化处理，假设全表扫描补充缺失信息
+                # 为避免旧数据覆盖新数据，如果已存在则保留（假设视图里的更优先/准确？或者反过来）
+                # 这里保持简单：merge
+                merged_info[ph].update(info)
+            
+            # if '19180258071' in str(ph):
+            #      print(f"DEBUG_MERGE_ALL_DONE: MergedInfo={merged_info[ph]}")
+    
+    return merged, merged_info
 
 
 class ConfigModel:
@@ -1625,50 +1747,55 @@ def build_alert_rows(
     contact_info = contact_info or {}
     snoozed_total = 0
 
-    def classify_reply_status(status: Optional[str]) -> Optional[bool]:
+    def classify_reply_status(status: Optional[str]) -> str:
         """
-        根据联系记录中的“回复状态”等字段，粗略判断客户是否有回复。
+        根据联系记录中的“回复状态”等字段，细化分类。
 
         返回:
-            True  -> 明确有回复/已沟通/成交
-            False -> 明确无回复/拒绝/不需要
-            None  -> 状态未知，不参与过滤
+            "ORDERED" -> 已下单/已购买/成交
+            "POSITIVE" -> 积极/咨询/意向/加微
+            "NEUTRAL" -> 仅回复/回复
+            "NEGATIVE" -> 无回复/拒绝/不需要/拉黑
+            "UNKNOWN" -> 未知
         """
         if not status:
-            return None
+            return "UNKNOWN"
         text = str(status).strip().lower()
         if not text:
-            return None
-        no_reply_keywords = (
-            "无回复",
-            "未回复",
-            "没回复",
-            "未回",
-            "不回",
-            "不理",
-            "拒绝",
-            "不需要",
-            "不想要",
-            "拉黑",
+            return "UNKNOWN"
+        
+        # 1. 已购类 (最高优先级屏蔽)
+        ordered_keywords = (
+            "已下单", "下单", "已购买", "成单", "成交",
         )
+        if any(k in text for k in ordered_keywords):
+            return "ORDERED"
+
+        # 2. 消极类 (排除)
+        negative_keywords = (
+            "无回复", "未回复", "没回复", "未回", "不回", "不理",
+            "拒绝", "不需要", "不想要", "拉黑",
+        )
+        if any(k in text for k in negative_keywords):
+            return "NEGATIVE"
+
+        # 3. 积极类 (加分)
         positive_keywords = (
-            "已回复",
-            "有回复",
-            "已沟通",
-            "已联系",
-            "成交",
-            "成单",
-            "已加",
-            "加微",
-            "加微信",
-            "已购买",
-            "已下单",
+            "积极", "咨询", "问询", "意向", "询价",
+            "已加", "加微", "加微信",
+            "有回复", "已回复", "已沟通", "已联系",
         )
-        if any(k in text for k in no_reply_keywords):
-            return False
         if any(k in text for k in positive_keywords):
-            return True
-        return None
+            return "POSITIVE"
+
+        # 4. 中性类 (一般)
+        neutral_keywords = (
+            "仅回复", "回复",
+        )
+        if any(k in text for k in neutral_keywords):
+            return "NEUTRAL"
+        
+        return "UNKNOWN"
 
     for stats in customers.values():
         if not stats.orders:
@@ -2027,8 +2154,31 @@ def build_alert_rows(
             config_model=config_model
         )
 
+        # 互动状态加成（Interaction Boost）
+        # 根据最近一次联系的回复等级/状态进行加权
+        interaction_boost = 0
+        active_timing_boost = 0
+        ci_meta_temp = contact_info.get(stats.phone or "") or {}
+        status_text_temp = str(ci_meta_temp.get("status") or "").strip()
+        reply_cat_temp = classify_reply_status(status_text_temp)
+        
+        if reply_cat_temp == "ORDERED":
+            interaction_boost = 20  # 极高价值响应
+        elif reply_cat_temp == "POSITIVE":
+            interaction_boost = 15  # 高意向
+            # 强力促单逻辑：积极回复 + (掐点窗口 OR 已经超期)
+            # 意味着上次聊得不错，现在又该买货了 -> 趁热打铁
+            if timing_window_boost > 0 or (personal_cycle_days and days_since and days_since >= personal_cycle_days):
+                active_timing_boost = 25
+                if "🔥高意向复购" not in tags:
+                    tags.append("🔥高意向复购")
+        elif reply_cat_temp == "NEUTRAL":
+            interaction_boost = 5   # 基础互动
+        elif reply_cat_temp == "NEGATIVE":
+            interaction_boost = -10 # 负面反馈
+
         # 汇总所有加成
-        total_boost = clv_boost + return_rate_boost + aov_boost + activity_boost + platform_boost + high_freq_boost + super_vip_boost + timing_window_boost + exchange_penalty
+        total_boost = clv_boost + return_rate_boost + aov_boost + activity_boost + platform_boost + high_freq_boost + super_vip_boost + timing_window_boost + exchange_penalty + interaction_boost + active_timing_boost
         
         # 低订单数+长时间未购的额外惩罚（关键逻辑！）
         # 2-4单且180天+的客户，基本流失，不值得高优先级跟进
@@ -2157,9 +2307,15 @@ def build_alert_rows(
             if delta_all < 0:
                 delta_all = 0
             # 明确标记为“无回复/不需要”等的客户，直接从触达名单排除（不再重复推送）
-            if reply_flag is False:
+            if reply_flag == "NEGATIVE":
                 # 保留概览与 meta，但不进入行动清单
                 continue
+            # 若最近30天内被标记为“已下单/已购买”，视为已完成转化，全库范围内屏蔽
+            if reply_flag == "ORDERED":
+                delta_order_flag = (today - last_contact_date).days
+                if delta_order_flag >= 0 and delta_order_flag < 30:
+                    continue
+
             if delta_all < cooldown_days:
                 snoozed_total += 1
                 cooldown_customers[stats.key] = last_contact_date
@@ -2181,8 +2337,15 @@ def build_alert_rows(
         
         if include_in_action:
             # 额外规则：若最近一次联系被明确标记为“无回复/不需要”，则不再进入触达名单
-            if last_contact_date and reply_flag is False:
+            if last_contact_date and reply_flag == "NEGATIVE":
                 continue
+            
+            # 额外规则：若最近30天内被标记为“已下单/已购买”，视为已完成转化，不再重复促单
+            # 即使账单尚未同步，销售手动标记的状态优先
+            if last_contact_date and reply_flag == "ORDERED":
+                delta_order_flag = (today - last_contact_date).days
+                if delta_order_flag >= 0 and delta_order_flag < 30:
+                    continue
 
             # 检查是否在冷却期（仅对未被判定为“无回复”的客户）
             in_cooldown = False
@@ -2249,6 +2412,25 @@ def build_alert_rows(
                 )
             
             ci = contact_info.get(stats.phone or "") or {}
+            
+            # DEBUG: Check why '谢凌昊' status is missing
+            # if "谢" in (stats.name or ""):
+            #     print(f"DEBUG_MAIN: Name={stats.name} | Phone={stats.phone!r} (len={len(str(stats.phone))}) | CI_Status={ci.get('status')} | CI_Keys={list(ci.keys())}")
+            #     # 尝试强制转字符串查一下
+            #     if str(stats.phone) in contact_info:
+            #          print(f"DEBUG_MAIN_RETRY: Found by str(phone)! Val={contact_info[str(stats.phone)]}")
+
+            # 为冷却期客户设置特殊的“促单理由”显示内容（显示回复状态）
+            reason_display = priority_explanation
+            if customer_list == "冷却期":
+                # 按照用户要求：显示回复等级，如果为空则显示“已联系”
+                status_val = ci.get("status")
+                if status_val and str(status_val).strip():
+                    reason_display = str(status_val).strip()
+                else:
+                    reason_display = "已联系"
+
+
             action_rows.append(
                 {
                     "customer_list": customer_list,  # 新增：所属列表
@@ -2268,7 +2450,7 @@ def build_alert_rows(
                     "phone": stats.phone or "",
                     "tags": tags_text,
                     "actions": actions_text,
-                    "priority_explanation": priority_explanation,
+                    "priority_explanation": reason_display,
                     "customer_value": customer_value,
                     "clv_score": round(clv_score, 2),  # CLV分数
                     "growth_type": growth_type,  # 成长类型
@@ -2884,7 +3066,26 @@ def write_html_dashboard(
                 elif header == "推荐动作":
                     value = entry.get("actions") or ""
                 elif header == "促单理由":
-                    value = entry.get("priority_explanation") or ""
+                    raw_text = entry.get("priority_explanation") or ""
+                    if entry.get("customer_list") == "冷却期":
+                        # Color mapping for reply statuses
+                        s_map = {
+                            "下单": ("#14532d", "#dcfce7", "#86efac"),     # Dark Green, Light Green, Border
+                            "积极回复": ("#1e3a8a", "#dbeafe", "#93c5fd"), # Dark Blue, Light Blue
+                            "咨询商品": ("#0e7490", "#cffafe", "#67e8f9"), # Cyan
+                            "仅回复": ("#374151", "#f3f4f6", "#e5e7eb"),   # Gray
+                            "已联系": ("#9ca3af", "#f9fafb", "#f3f4f6"),   # Light Gray
+                        }
+                        c_text, c_bg, c_border = s_map.get(raw_text.strip(), ("#374151", "#f3f4f6", "#e5e7eb"))
+                        
+                        value = (
+                            f"<span style='display: inline-block; padding: 2px 10px; border-radius: 12px; "
+                            f"font-size: 12px; font-weight: 600; color: {c_text}; background-color: {c_bg}; "
+                            f"border: 1px solid {c_border}; white-space: nowrap;'>"
+                            f"{escape(raw_text)}</span>"
+                        )
+                    else:
+                        value = raw_text
                 elif header == "价值层级":
                     value = entry.get("customer_value") or ""
                 elif header == "偏好单品":
@@ -2983,8 +3184,13 @@ def write_html_dashboard(
                 sort_attr = (
                     f" data-sort-value='{escape(sort_key, quote=True)}'" if sort_key is not None else ""
                 )
+                
+                # Check if we should allow raw HTML (for colored badges)
+                is_html_safe = (header == "促单理由" and entry.get("customer_list") == "冷却期")
+                content = value if is_html_safe else escape(value)
+                
                 cells_html.append(
-                    f"<td data-header='{escape(header)}'{sort_attr}>{escape(value)}</td>"
+                    f"<td data-header='{escape(header)}'{sort_attr}>{content}</td>"
                 )
         html_rows.append(f"<tr {row_attrs}>{''.join(cells_html)}</tr>")
     
@@ -4813,7 +5019,7 @@ def write_html_dashboard(
                         rr,               // 退货率
                         ds,               // 未复购天数
                         aov,              // 平均客单价
-                        '',               // 促单理由（合成行留空）
+                        (rowList === '冷却期' && meta && meta.contact_status) ? meta.contact_status : '', // 促单理由 -> 冷却期显示回复状态
                     ];
                     // 复用打勾逻辑
                     const cb = document.createElement('input');
@@ -7264,9 +7470,10 @@ def main():
     feishu_table_id = os.getenv('FEISHU_CONTACT_TABLE_ID') or os.getenv('FEISHU_TABLE_ID')
     feishu_token = os.getenv('FEISHU_USER_ACCESS_TOKEN') or os.getenv('FEISHU_TENANT_ACCESS_TOKEN')
     feishu_view_id = os.getenv('FEISHU_CONTACT_VIEW_ID')
+    contact_info_map: Dict[str, Dict[str, Any]] = {}  # 初始化放到前面
     if feishu_app_token and feishu_table_id and feishu_token:
         try:
-            contact_log = fetch_feishu_contact_log(
+            contact_log, contact_info_map = fetch_feishu_contact_log(
                 feishu_app_token, feishu_table_id, today,
                 token=feishu_token, view_id=feishu_view_id
             )
@@ -7290,7 +7497,6 @@ def main():
         except Exception as e:
             print(f"⚠️  读取飞书联系记录失败：{e}，将尝试读取本地联系记录。")
     # 回退：读取本地 Excel 联系记录（扩展字段）
-    contact_info_map: Dict[str, Dict[str, Any]] = {}
     if not contact_log_active:
         if contact_log_path and contact_log_path.exists():
             try:
