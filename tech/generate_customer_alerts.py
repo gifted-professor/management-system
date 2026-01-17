@@ -4476,6 +4476,7 @@ def write_html_dashboard(
                     const tableContainer = detailTable.parentElement; 
                     tableContainer.parentNode.insertBefore(diagDiv, tableContainer);
                 }}
+                diagDiv.style.display = 'block';
                 
                 let diagHtml = '';
                 if (highReturnSkus.length > 0 || lowMarginSkus.length > 0) {{
@@ -5826,6 +5827,11 @@ def write_html_dashboard(
     }}
 
     function openDetailForKey(key, name) {{
+      const diag = document.getElementById('mfrDiagnosis');
+      if (diag) diag.remove();
+      const ai = document.getElementById('mfrAiAnalysis');
+      if (ai) ai.remove();
+
       let rows = (detailMap && detailMap[key]) ? detailMap[key] : [];
       if (!rows.length && globalDetails && globalDetails[key]) {{
         rows = globalDetails[key];
@@ -5933,6 +5939,11 @@ def write_html_dashboard(
     // SKU 明细抽屉（按货品名汇总展示全量订单）
     // filterType: 'all' | 'normal' | 'proxy'
     function openDetailForSku(sku, filterType) {{
+      const diag = document.getElementById('mfrDiagnosis');
+      if (diag) diag.remove();
+      const ai = document.getElementById('mfrAiAnalysis');
+      if (ai) ai.remove();
+
       const rows = [];
       try {{
         Object.values(globalDetails || {{}}).forEach(list => {{
@@ -6112,6 +6123,11 @@ def write_html_dashboard(
 
     function openDetailForManufacturer(manufacturer) {{
       if (!manufacturer) return;
+      const diag = document.getElementById('mfrDiagnosis');
+      if (diag) diag.remove();
+      const ai = document.getElementById('mfrAiAnalysis');
+      if (ai) ai.remove();
+
       const rows = [];
       try {{
         Object.values(globalDetails || {{}}).forEach(list => {{
@@ -6190,6 +6206,11 @@ def write_html_dashboard(
 
     function openDetailForPlatform(platform) {{
       if (!platform) return;
+      const diag = document.getElementById('mfrDiagnosis');
+      if (diag) diag.remove();
+      const ai = document.getElementById('mfrAiAnalysis');
+      if (ai) ai.remove();
+
       const rows = [];
       try {{
         Object.values(globalDetails || {{}}).forEach(list => {{
