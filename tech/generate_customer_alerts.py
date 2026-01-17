@@ -4332,6 +4332,41 @@ def write_html_dashboard(
                 return data.slice(0, MAX_BARS);
             }}
             
+            window.filterMfrDetailBySku = function(sku) {{
+                if (!window.renderMfrDetailTable) return;
+                
+                if (!sku) {{
+                    window.renderMfrDetailTable(window._currentMfrRows);
+                    document.querySelectorAll('.diagnosis-sku-tag').forEach(el => {{
+                        el.style.backgroundColor = 'transparent';
+                        el.style.fontWeight = 'normal';
+                        el.style.color = '';
+                    }});
+                    return;
+                }}
+
+                const allRows = window._currentMfrRows || [];
+                const filtered = allRows.filter(r => {{
+                    const item = r['商品名称'] || r['货品名'] || '';
+                    return item.includes(sku);
+                }});
+                
+                window.renderMfrDetailTable(filtered, sku);
+                
+                document.querySelectorAll('.diagnosis-sku-tag').forEach(el => {{
+                    if (el.getAttribute('data-sku') === sku) {{
+                        el.style.backgroundColor = '#fef3c7';
+                        el.style.fontWeight = 'bold';
+                        el.style.color = '#d97706';
+                        el.style.borderRadius = '4px';
+                    }} else {{
+                        el.style.backgroundColor = 'transparent';
+                        el.style.fontWeight = 'normal';
+                        el.style.color = '';
+                    }}
+                }});
+            }};
+
             function showManufacturerDetails(mfrName) {{
                 const rows = [];
                 // Statistics for diagnosis
@@ -4452,14 +4487,14 @@ def write_html_dashboard(
                     if (highReturnSkus.length > 0) {{
                         diagHtml += '<div style="margin-bottom:6px;">';
                         diagHtml += '<span style="background:#e11d48; color:white; padding:2px 6px; border-radius:4px; font-size:11px; margin-right:6px;">高退货风险</span>';
-                        diagHtml += highReturnSkus.map(i => `<b>${{i.sku}}</b> (${{(i.rate*100).toFixed(0)}}%退货)`).join('、');
+                        diagHtml += highReturnSkus.map(i => `<span class="diagnosis-sku-tag" data-sku="${{i.sku.replace(/"/g, "&quot;")}}" onclick="window.filterMfrDetailBySku('${{i.sku.replace(/'/g, "\\\\'").replace(/"/g, "&quot;")}}')" style="cursor:pointer; border-bottom:1px dashed currentColor;"><b>${{i.sku}}</b> (${{(i.rate*100).toFixed(0)}}%退货)</span>`).join('、');
                         diagHtml += '</div>';
                     }}
                     
                     if (lowMarginSkus.length > 0) {{
                         diagHtml += '<div>';
                         diagHtml += '<span style="background:#f59e0b; color:white; padding:2px 6px; border-radius:4px; font-size:11px; margin-right:6px;">低毛利预警</span>';
-                        diagHtml += lowMarginSkus.map(i => `<b>${{i.sku}}</b> (毛利${{(i.margin*100).toFixed(0)}}%)`).join('、');
+                        diagHtml += lowMarginSkus.map(i => `<span class="diagnosis-sku-tag" data-sku="${{i.sku.replace(/"/g, "&quot;")}}" onclick="window.filterMfrDetailBySku('${{i.sku.replace(/'/g, "\\\\'").replace(/"/g, "&quot;")}}')" style="cursor:pointer; border-bottom:1px dashed currentColor;"><b>${{i.sku}}</b> (毛利${{(i.margin*100).toFixed(0)}}%)</span>`).join('、');
                         diagHtml += '</div>';
                     }}
                     diagHtml += '</div>';
@@ -4556,75 +4591,96 @@ def write_html_dashboard(
                     aiDiv.style.display = 'none';
                 }}
 
-                if (detailTbody) detailTbody.innerHTML = '';
-                
-                if (!rows.length) {{
-                    const tr = document.createElement('tr');
-                    const td = document.createElement('td');
-                    td.colSpan = 15;
-                    td.textContent = '暂无数据';
-                    tr.appendChild(td);
-                    if (detailTbody) detailTbody.appendChild(tr);
-                }} else {{
-                    const frag = document.createDocumentFragment();
-                    rows.forEach(function(r) {{
+                // Global vars for filter function
+                window._currentMfrRows = rows;
+                window._currentMfrName = mfrName;
+
+                window.renderMfrDetailTable = function(rowsToRender, highlightSku) {{
+                    if (detailTbody) detailTbody.innerHTML = '';
+                    
+                    // Update Title
+                    if (highlightSku && detailTitle) {{
+                         detailTitle.innerHTML = window._currentMfrName + ' - 厂家订单明细 <span style="font-size:0.8em; color:#64748b; font-weight:normal;">(筛选货号: ' + highlightSku + ' - ' + rowsToRender.length + ' 条)</span>' + 
+                         ' <a href="javascript:void(0)" onclick="window.filterMfrDetailBySku(null)" style="font-size:12px; margin-left:10px;">[清除筛选]</a>';
+                    }} else if (detailTitle && window._currentMfrRows) {{
+                         detailTitle.innerHTML = window._currentMfrName + ' - 厂家订单明细 <span style="font-size:0.8em; color:#64748b; font-weight:normal;">(近60天: ' + rowsToRender.length + ' 条)</span>';
+                    }}
+
+                    if (!rowsToRender.length) {{
                         const tr = document.createElement('tr');
-                        const paymentAmt = r['付款金额'];
-                        const costAmt = r['打款金额'];
-                        
-                        // Helper function for margin calculation
-                        const calcM = (typeof calcMargin === 'function') ? calcMargin : function(p, c) {{
-                            const pv = parseFloat(p) || 0;
-                            const cv = parseFloat(c) || 0;
-                            if (pv <= 0) return '-';
-                            return ((pv - cv) / pv * 100).toFixed(1) + '%';
-                        }};
-
-                        const formatA = (typeof formatAmount === 'function') ? formatAmount : function(v) {{
-                            const n = parseFloat(v);
-                            return isFinite(n) ? n.toFixed(2) : '';
-                        }};
-
-                        const cols = [
-                            r['姓名'] || '',
-                            r['手机号'] || '',
-                            (r['下单时间'] || ''),
-                            r['下单平台'] || '',
-                            r['厂家'] || '',
-                            (r['商品名称'] || r['货品名'] || ''),
-                            r['颜色'] || r['色号'] || '',
-                            r['尺码'] || r['规格'] || r['码数'] || '',
-                            formatA(paymentAmt),
-                            formatA(costAmt),
-                            calcM(paymentAmt, costAmt),
-                            r['订单号'] || '',
-                            r['退货单号'] || '',
-                            r['退款类型'] || '',
-                            r['退款原因'] || ''
-                        ];
-                        
-                        cols.forEach(function(text, i) {{
-                            const td = document.createElement('td');
-                            // Add sorting attributes
-                            if (i === 2) {{ // Date
-                                const digits = String(text).replace(/\D/g, '');
-                                if (digits.length >= 8) {{ td.setAttribute('data-sort-value', digits.slice(0,8)); }}
-                            }} else if (i === 8 || i === 9) {{ // Amounts
-                                const val = parseFloat(text);
-                                if (isFinite(val)) td.setAttribute('data-sort-value', String(val));
-                            }} else if (i === 10) {{ // Margin
-                                const marginText = String(text).replace('%', '');
-                                const val = parseFloat(marginText);
-                                if (isFinite(val)) td.setAttribute('data-sort-value', String(val));
-                            }}
+                        const td = document.createElement('td');
+                        td.colSpan = 15;
+                        td.textContent = '暂无数据';
+                        tr.appendChild(td);
+                        if (detailTbody) detailTbody.appendChild(tr);
+                    }} else {{
+                        const frag = document.createDocumentFragment();
+                        rowsToRender.forEach(function(r) {{
+                            const tr = document.createElement('tr');
+                            const paymentAmt = r['付款金额'];
+                            const costAmt = r['打款金额'];
                             
-                            td.textContent = text;
-                            tr.appendChild(td);
+                            // Helper function for margin calculation
+                            const calcM = (typeof calcMargin === 'function') ? calcMargin : function(p, c) {{
+                                const pv = parseFloat(p) || 0;
+                                const cv = parseFloat(c) || 0;
+                                if (pv <= 0) return '-';
+                                return ((pv - cv) / pv * 100).toFixed(1) + '%';
+                            }};
+
+                            const formatA = (typeof formatAmount === 'function') ? formatAmount : function(v) {{
+                                const n = parseFloat(v);
+                                return isFinite(n) ? n.toFixed(2) : '';
+                            }};
+
+                            const cols = [
+                                r['姓名'] || '',
+                                r['手机号'] || '',
+                                (r['下单时间'] || ''),
+                                r['下单平台'] || '',
+                                r['厂家'] || '',
+                                (r['商品名称'] || r['货品名'] || ''),
+                                r['颜色'] || r['色号'] || '',
+                                r['尺码'] || r['规格'] || r['码数'] || '',
+                                formatA(paymentAmt),
+                                formatA(costAmt),
+                                calcM(paymentAmt, costAmt),
+                                r['订单号'] || '',
+                                r['退货单号'] || '',
+                                r['退款类型'] || '',
+                                r['退款原因'] || ''
+                            ];
+                            
+                            cols.forEach(function(text, i) {{
+                                const td = document.createElement('td');
+                                // Add sorting attributes
+                                if (i === 2) {{ // Date
+                                    const digits = String(text).replace(/\D/g, '');
+                                    if (digits.length >= 8) {{ td.setAttribute('data-sort-value', digits.slice(0,8)); }}
+                                }} else if (i === 8 || i === 9) {{ // Amounts
+                                    const val = parseFloat(text);
+                                    if (isFinite(val)) td.setAttribute('data-sort-value', String(val));
+                                }} else if (i === 10) {{ // Margin
+                                    const marginText = String(text).replace('%', '');
+                                    const val = parseFloat(marginText);
+                                    if (isFinite(val)) td.setAttribute('data-sort-value', String(val));
+                                }}
+                                
+                                td.textContent = text;
+                                tr.appendChild(td);
+                            }});
+                            frag.appendChild(tr);
                         }});
-                        frag.appendChild(tr);
-                    }});
-                    if (detailTbody) detailTbody.appendChild(frag);
-                }}
+                        if (detailTbody) detailTbody.appendChild(frag);
+                    }}
+                    
+                    // Re-init tablesort
+                    if (typeof Tablesort !== 'undefined' && detailTable) {{
+                        try {{ new Tablesort(detailTable); }} catch (e) {{}}
+                    }}
+                }};
+
+                window.renderMfrDetailTable(rows);
 
                 // Show Panel
                 if (detailBackdrop) detailBackdrop.classList.remove('hidden');
