@@ -3918,6 +3918,28 @@ def write_html_dashboard(
                 </table>
             </div>
         </div>
+        <div class="card card-wide" id="returnFollowupCard">
+            <h3>退货跟进（厂家退款）</h3>
+            <p id="returnFollowupMeta" style="margin: 6px 0 10px 0; font-size: 12px; color: #64748b;"></p>
+            <div class="scroll-pane" style="margin-top:12px; border:none;">
+                <table class="mini-table" id="returnFollowupOrdersTable">
+                    <thead>
+                        <tr>
+                            <th>下单时间</th>
+                            <th>厂家</th>
+                            <th>货品名</th>
+                            <th data-sort-method="number">付款金额</th>
+                            <th>订单号</th>
+                            <th>退货单号</th>
+                            <th>退款类型</th>
+                            <th>退货状态</th>
+                            <th data-sort-method="number">厂家退回金额</th>
+                        </tr>
+                    </thead>
+                    <tbody id="returnFollowupOrdersBody"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <div class="toolbar">
@@ -4119,9 +4141,9 @@ def write_html_dashboard(
         return key || '';
     }}
 
-    // 规范化字符串：仅保留 a-z0-9，便于货品名"FZ-1103 / FZ 1103 / FZ1103"等形式统一匹配
+    // 规范化字符串：保留 a-z0-9 及中文字符，便于统一匹配
     function normAlphaNum(s) {{
-        return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return String(s || '').toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/g, '');
     }}
 
     // ==================== 搜索性能优化 ====================
@@ -5076,7 +5098,7 @@ def write_html_dashboard(
                         rr,               // 退货率
                         ds,               // 未复购天数
                         aov,              // 平均客单价
-                        (rowList === '冷却期' && meta && meta.contact_status) ? meta.contact_status : '', // 促单理由 -> 冷却期显示回复状态
+                        (currentList === '冷却期' && meta && meta.contact_status) ? meta.contact_status : '', // 促单理由 -> 冷却期显示回复状态
                     ];
                     // 复用打勾逻辑
                     const cb = document.createElement('input');
@@ -5790,6 +5812,30 @@ def write_html_dashboard(
           </thead>
           <tbody id="detailTbody"></tbody>
         </table>
+        <table id="orderWideTable" class="mini-table hidden">
+          <thead>
+            <tr>
+              <th data-sort-method="number">下单时间</th>
+              <th>姓名</th>
+              <th>手机号</th>
+              <th>下单平台</th>
+              <th>厂家</th>
+              <th>货品名</th>
+              <th>颜色</th>
+              <th>尺码</th>
+              <th data-sort-method="number">付款金额</th>
+              <th data-sort-method="number">打款金额</th>
+              <th data-sort-method="number">毛利率</th>
+              <th>订单号</th>
+              <th>退货单号</th>
+              <th>退款类型</th>
+              <th>退款原因</th>
+              <th>退货状态</th>
+              <th data-sort-method="number">厂家退回金额</th>
+            </tr>
+          </thead>
+          <tbody id="orderWideTbody"></tbody>
+        </table>
       </div>
     `;
     document.body.appendChild(panel);
@@ -5798,7 +5844,19 @@ def write_html_dashboard(
     const detailClose = panel.querySelector('#detailClose');
     const detailTbody = panel.querySelector('#detailTbody');
     const detailTable = panel.querySelector('#detailTable');
+    const orderWideTable = panel.querySelector('#orderWideTable');
+    const orderWideTbody = panel.querySelector('#orderWideTbody');
     let panelOpen = false;
+
+    function showDetailTableMode() {{
+      if (orderWideTable) orderWideTable.classList.add('hidden');
+      if (detailTable) detailTable.classList.remove('hidden');
+    }}
+
+    function showOrderWideMode() {{
+      if (detailTable) detailTable.classList.add('hidden');
+      if (orderWideTable) orderWideTable.classList.remove('hidden');
+    }}
 
     function formatAmount(n) {{
       const v = (typeof n === 'number') ? n : parseFloat(n);
@@ -5826,11 +5884,104 @@ def write_html_dashboard(
         .replace(/'/g, '&#039;');
     }}
 
+    function openDetailForOrder(orderObj) {{
+      const diag = document.getElementById('mfrDiagnosis');
+      if (diag) diag.remove();
+      const ai = document.getElementById('mfrAiAnalysis');
+      if (ai) ai.remove();
+      if (!orderObj || typeof orderObj !== 'object') return;
+
+      showOrderWideMode();
+      if (detailTbody) detailTbody.innerHTML = '';
+      if (orderWideTbody) orderWideTbody.innerHTML = '';
+
+      const orderNo = (orderObj['订单号'] || '').toString().trim();
+      detailTitle.textContent = (orderNo ? ('订单详情 - ' + orderNo) : '订单详情');
+
+      const dateText = orderObj['下单时间'] || orderObj['下单日期'] || orderObj['顾客付款日期'] || orderObj['付款日期'] || '';
+      const name = orderObj['姓名'] || '';
+      const phone = orderObj['手机号'] || '';
+      const platform = orderObj['下单平台'] || '';
+      const mfr = orderObj['厂家'] || '';
+      const product = orderObj['商品名称'] || orderObj['货品名'] || orderObj['商品'] || orderObj['货号'] || orderObj['SKU'] || orderObj['sku'] || '';
+      const color = orderObj['颜色'] || orderObj['色号'] || '';
+      const size = orderObj['尺码'] || orderObj['规格'] || orderObj['码数'] || '';
+      const paymentAmt = orderObj['付款金额'];
+      const costAmt = orderObj['打款金额'];
+      const returnNo = orderObj['退货单号'] || '';
+      const refundType = orderObj['退款类型'] || '';
+      const refundReason = orderObj['退款原因'] || '';
+      const returnStatus = orderObj['退货状态'] || orderObj['售后状态'] || '';
+      const mfrRefund = (() => {{
+        if (!orderObj || typeof orderObj !== 'object') return '';
+        const directKeys = ['厂家退回金额', '厂家退款金额', '厂家回款金额', '厂家退回'];
+        for (let i = 0; i < directKeys.length; i++) {{
+          const k = directKeys[i];
+          if (Object.prototype.hasOwnProperty.call(orderObj, k) && orderObj[k] !== null && orderObj[k] !== undefined) return orderObj[k];
+        }}
+        const keys = Object.keys(orderObj);
+        for (let i = 0; i < keys.length; i++) {{
+          const rawKey = keys[i];
+          const normalized = String(rawKey).replace(/\\s+/g, '');
+          if (directKeys.indexOf(normalized) === -1) continue;
+          const v = orderObj[rawKey];
+          if (v !== null && v !== undefined) return v;
+        }}
+        return '';
+      }})();
+
+      const tr = document.createElement('tr');
+      const cols = [
+        dateText,
+        name,
+        phone,
+        platform,
+        mfr,
+        product,
+        color,
+        size,
+        formatAmount(paymentAmt),
+        formatAmount(costAmt),
+        calcMargin(paymentAmt, costAmt),
+        orderNo,
+        returnNo,
+        refundType,
+        refundReason,
+        returnStatus,
+        String(mfrRefund === null || mfrRefund === undefined ? '' : mfrRefund)
+      ];
+      cols.forEach((text, i) => {{
+        const td = document.createElement('td');
+        if (i === 0) {{
+          const digits = String(text).replace(/\\D/g, '');
+          if (digits.length >= 8) td.setAttribute('data-sort-value', digits.slice(0, 8));
+        }} else if (i === 8 || i === 9 || i === 16) {{
+          const val = parseFloat(String(text).replace(/[^\\d.\\-]/g, ''));
+          if (isFinite(val)) td.setAttribute('data-sort-value', String(val));
+        }} else if (i === 10) {{
+          const marginText = String(text).replace('%', '');
+          const val = parseFloat(marginText);
+          if (isFinite(val)) td.setAttribute('data-sort-value', String(val));
+        }}
+        td.textContent = text;
+        tr.appendChild(td);
+      }});
+      if (orderWideTbody) orderWideTbody.appendChild(tr);
+      try {{ new Tablesort(orderWideTable); }} catch (e) {{}}
+
+      detailBackdrop.classList.remove('hidden');
+      panel.classList.remove('hidden');
+      panelOpen = true;
+      if (typeof playSound === 'function') playSound('click');
+    }}
+
     function openDetailForKey(key, name) {{
       const diag = document.getElementById('mfrDiagnosis');
       if (diag) diag.remove();
       const ai = document.getElementById('mfrAiAnalysis');
       if (ai) ai.remove();
+      showDetailTableMode();
+      if (orderWideTbody) orderWideTbody.innerHTML = '';
 
       let rows = (detailMap && detailMap[key]) ? detailMap[key] : [];
       if (!rows.length && globalDetails && globalDetails[key]) {{
@@ -5902,7 +6053,7 @@ def write_html_dashboard(
       detailBackdrop.classList.remove('hidden');
       panel.classList.remove('hidden');
       panelOpen = true;
-      playSound('click');
+      if (typeof playSound === 'function') playSound('click');
     }}
 
     function closeDetail() {{
@@ -5943,6 +6094,8 @@ def write_html_dashboard(
       if (diag) diag.remove();
       const ai = document.getElementById('mfrAiAnalysis');
       if (ai) ai.remove();
+      showDetailTableMode();
+      if (orderWideTbody) orderWideTbody.innerHTML = '';
 
       const rows = [];
       try {{
@@ -6030,12 +6183,15 @@ def write_html_dashboard(
       detailBackdrop.classList.remove('hidden');
       panel.classList.remove('hidden');
       panelOpen = true;
+      if (typeof playSound === 'function') playSound('click');
     }}
 
     // 货品名“包含”查询（全库模糊匹配）
     function openDetailForSkuQuery(queryRaw) {{
       const qn = normAlphaNum(queryRaw || '');
       if (!qn) return;
+      showDetailTableMode();
+      if (orderWideTbody) orderWideTbody.innerHTML = '';
       const rows = [];
       try {{
         Object.values(globalDetails || {{}}).forEach(list => {{
@@ -6127,6 +6283,8 @@ def write_html_dashboard(
       if (diag) diag.remove();
       const ai = document.getElementById('mfrAiAnalysis');
       if (ai) ai.remove();
+      showDetailTableMode();
+      if (orderWideTbody) orderWideTbody.innerHTML = '';
 
       const rows = [];
       try {{
@@ -6210,6 +6368,8 @@ def write_html_dashboard(
       if (diag) diag.remove();
       const ai = document.getElementById('mfrAiAnalysis');
       if (ai) ai.remove();
+      showDetailTableMode();
+      if (orderWideTbody) orderWideTbody.innerHTML = '';
 
       const rows = [];
       try {{
@@ -6647,6 +6807,196 @@ def write_html_dashboard(
       }}
     }} catch (e) {{ /* no-op */ }}
 
+    // ============ 退货跟进（厂家退款）===========
+    const returnFollowupMeta = document.getElementById('returnFollowupMeta');
+    const returnFollowupOrdersBody = document.getElementById('returnFollowupOrdersBody');
+    const returnFollowupOrdersTable = document.getElementById('returnFollowupOrdersTable');
+    let returnFollowupCache = null;
+
+    function rfSafeTrim(v) {{
+        return String(v === null || v === undefined ? '' : v).trim();
+    }}
+    function rfIsBlank(v) {{
+        return v === null || v === undefined || String(v).trim() === '';
+    }}
+    function rfParseNumber(v) {{
+        if (v === null || v === undefined) return NaN;
+        if (typeof v === 'number') return v;
+        const s = String(v).replace(/[^\d.\-]/g, '');
+        const n = parseFloat(s);
+        return isFinite(n) ? n : NaN;
+    }}
+    function rfFormatMoney(v) {{
+        const n = rfParseNumber(v);
+        if (!isFinite(n)) return '';
+        return '¥' + n.toFixed(2);
+    }}
+    function rfPickProductText(o) {{
+        return rfSafeTrim(o && (o['货品名'] || o['商品名称'] || o['商品'] || o['货号'] || o['sku'] || o['SKU'] || ''));
+    }}
+    function rfPickOrderDate(o) {{
+        return rfSafeTrim(o && (o['下单时间'] || o['下单日期'] || o['顾客付款日期'] || o['付款日期'] || ''));
+    }}
+    function rfPickReturnStatus(o) {{
+        return rfSafeTrim(o && (o['退货状态'] || o['售后状态'] || ''));
+    }}
+    function rfPickMfrRefund(o) {{
+        if (!o || typeof o !== 'object') return '';
+        const directKeys = ['厂家退回金额', '厂家退款金额', '厂家回款金额', '厂家退回'];
+        for (let i = 0; i < directKeys.length; i++) {{
+            const k = directKeys[i];
+            if (Object.prototype.hasOwnProperty.call(o, k) && o[k] !== null && o[k] !== undefined) return o[k];
+        }}
+        const keys = Object.keys(o);
+        for (let i = 0; i < keys.length; i++) {{
+            const rawKey = keys[i];
+            const normalized = String(rawKey).replace(/\\s+/g, '');
+            if (directKeys.indexOf(normalized) === -1) continue;
+            const v = o[rawKey];
+            if (v !== null && v !== undefined) return v;
+        }}
+        return '';
+    }}
+    const returnFollowupNowMs = new Date(todayStr).getTime();
+    const returnFollowupTwoMonthsMs = 60 * 24 * 60 * 60 * 1000;
+    function rfParseOrderMs(dateText) {{
+        const raw = rfSafeTrim(dateText);
+        if (!raw) return 0;
+        const direct = new Date(raw).getTime();
+        if (isFinite(direct) && direct > 0) return direct;
+        const digits = raw.replace(/\\D/g, '');
+        if (digits.length < 8) return 0;
+        const y = parseInt(digits.slice(0, 4), 10);
+        const m = parseInt(digits.slice(4, 6), 10);
+        const d = parseInt(digits.slice(6, 8), 10);
+        if (!y || !m || !d) return 0;
+        const ms = new Date(y, m - 1, d).getTime();
+        return isFinite(ms) && ms > 0 ? ms : 0;
+    }}
+    function rfIsReturnOrder(o) {{
+        const refundType = rfSafeTrim(o && o['退款类型']);
+        const returnNo = rfSafeTrim(o && o['退货单号']);
+        const orderNo = rfSafeTrim(o && o['订单号']);
+        const isCancelOrSupp = /取消|补/.test(refundType) || /取消|补/.test(orderNo);
+        if (isCancelOrSupp) return false;
+        return (/退/.test(refundType) || !!returnNo);
+    }}
+    function rfIsRefundFollowupOrder(o) {{
+        const refundType = rfSafeTrim(o && o['退款类型']);
+        if (!refundType) return false;
+        if (refundType.indexOf('补') !== -1) return false;
+        if (refundType.indexOf('取消') !== -1) return false;
+        const returnNo = rfSafeTrim(o && o['退货单号']);
+        if (!returnNo) return false;
+        const returnStatus = rfPickReturnStatus(o);
+        if (returnStatus && returnStatus.toLowerCase() === 'close') return false;
+        if (returnStatus === '退回芋圆') return false;
+        const mfrRefund = rfPickMfrRefund(o);
+        if (!rfIsBlank(mfrRefund)) return false;
+        const mfr = rfSafeTrim(o && o['厂家']);
+        if (mfr) {{
+            if (mfr.indexOf('芋圆') !== -1) return false;
+            if (mfr.indexOf('蝙蝠厂家') !== -1) return false;
+            if (mfr.indexOf('新包包') !== -1) return false;
+        }}
+        return true;
+    }}
+    function computeReturnFollowup() {{
+        if (returnFollowupCache) return returnFollowupCache;
+        const orders = [];
+        let excludedNoDate = 0;
+        let excludedOld = 0;
+        try {{
+            Object.values(globalDetails || {{}}).forEach(list => {{
+                if (!Array.isArray(list)) return;
+                list.forEach(o => {{
+                    if (!o || typeof o !== 'object') return;
+                    if (!rfIsRefundFollowupOrder(o)) return;
+                    const dateText = rfPickOrderDate(o);
+                    const orderMs = rfParseOrderMs(dateText);
+                    if (!orderMs) {{
+                        excludedNoDate += 1;
+                        return;
+                    }}
+                    const diffMs = returnFollowupNowMs - orderMs;
+                    if (!(diffMs >= 0 && diffMs <= returnFollowupTwoMonthsMs)) {{
+                        excludedOld += 1;
+                        return;
+                    }}
+                    orders.push({{
+                        dateText,
+                        mfr: rfSafeTrim(o['厂家']),
+                        product: rfPickProductText(o),
+                        payment: rfParseNumber(o['付款金额']),
+                        orderNo: rfSafeTrim(o['订单号']),
+                        returnNo: rfSafeTrim(o['退货单号']),
+                        refundType: rfSafeTrim(o['退款类型']),
+                        status: rfPickReturnStatus(o),
+                        mfrRefund: rfPickMfrRefund(o),
+                        raw: o,
+                        isReturn: rfIsReturnOrder(o)
+                    }});
+                }});
+            }});
+        }} catch (e) {{}}
+        returnFollowupCache = {{ orders, excludedNoDate, excludedOld }};
+        return returnFollowupCache;
+    }}
+    function renderReturnFollowup() {{
+        if (!returnFollowupOrdersBody) return;
+        const data = computeReturnFollowup();
+        const orders = data.orders || [];
+        if (returnFollowupMeta) {{
+            const exNoDate = data.excludedNoDate || 0;
+            const exOld = data.excludedOld || 0;
+            returnFollowupMeta.textContent = `近60天｜命中 ${{orders.length}} 条待跟进订单｜排除无日期 ${{exNoDate}}｜排除超期 ${{exOld}}`;
+        }}
+        while (returnFollowupOrdersBody.firstChild) returnFollowupOrdersBody.removeChild(returnFollowupOrdersBody.firstChild);
+        const orderedOrders = orders.slice().sort((a, b) => {{
+            const ad = String(a.dateText || '').replace(/\\D/g, '').slice(0, 14);
+            const bd = String(b.dateText || '').replace(/\\D/g, '').slice(0, 14);
+            const an = ad ? parseInt(ad, 10) : 0;
+            const bn = bd ? parseInt(bd, 10) : 0;
+            return bn - an;
+        }}).slice(0, 500);
+        const fragO = document.createDocumentFragment();
+        orderedOrders.forEach(o => {{
+            const tr = document.createElement('tr');
+            tr.style.cursor = 'pointer';
+            tr.addEventListener('click', () => {{
+                if (panelOpen) return;
+                openDetailForOrder(o.raw);
+            }});
+            const cols = [
+                o.dateText || '',
+                o.mfr || '',
+                o.product || '',
+                rfFormatMoney(o.payment),
+                o.orderNo || '',
+                o.returnNo || '',
+                o.refundType || '',
+                o.status || '',
+                rfIsBlank(o.mfrRefund) ? '' : String(o.mfrRefund)
+            ];
+            cols.forEach((t, idx) => {{
+                const td = document.createElement('td');
+                td.textContent = t;
+                if (idx === 3) {{
+                    const val = rfParseNumber(o.payment);
+                    if (isFinite(val)) td.setAttribute('data-sort-value', String(val));
+                }}
+                if (idx === 8) {{
+                    const val = rfParseNumber(o.mfrRefund);
+                    if (isFinite(val)) td.setAttribute('data-sort-value', String(val));
+                }}
+                tr.appendChild(td);
+            }});
+            fragO.appendChild(tr);
+        }});
+        returnFollowupOrdersBody.appendChild(fragO);
+        try {{ if (returnFollowupOrdersTable) new Tablesort(returnFollowupOrdersTable); }} catch (e) {{}}
+    }}
+
     // ============ 角色切换功能 ============
     (function() {{
         const roleOperations = document.getElementById('roleOperations');
@@ -6677,6 +7027,7 @@ def write_html_dashboard(
                 if (customerServiceElements.filters) customerServiceElements.filters.style.display = 'none';
                 // 保留客户列表表格，用于显示搜索结果
                 if (customerServiceElements.table) customerServiceElements.table.style.display = 'table';
+                renderReturnFollowup();
             }} else {{
                 // 客服视角：隐藏SKU分析和运营搜索框，显示所有客服工具
                 if (operationsElements.summary) operationsElements.summary.style.display = 'none';
@@ -6716,8 +7067,20 @@ def write_html_dashboard(
         if (operationsSearchBox) {{
             operationsSearchBox.addEventListener('input', function() {{
                 const searchText = this.value.trim().toLowerCase();
-                const table = document.querySelector('table');
+                
+                // 关键修正：精确选中主数据表格（排除所有 .mini-table）
+                const table = document.querySelector('table:not(.mini-table)');
                 const rows = table ? Array.from(table.querySelectorAll('tbody tr')) : [];
+                
+                // 运营视角的 SKU 分析区域
+                const summarySection = document.querySelector('.summary');
+
+                // 如果正在搜索，隐藏 SKU 分析区域，让用户专注于搜索结果
+                if (searchText) {{
+                    if (summarySection) summarySection.style.display = 'none';
+                }} else {{
+                    if (summarySection) summarySection.style.display = 'grid'; // 恢复显示
+                }}
 
                 // 使用与客服视角相同的全局搜索逻辑
                 rows.forEach(row => {{
@@ -6786,12 +7149,12 @@ def write_html_dashboard(
                     }},
                     colors: {{
                         brand: {{
-                            50: '#eff6ff',
-                            100: '#dbeafe',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                            900: '#1e3a8a',
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
                         }}
                     }}
                 }}
@@ -6808,9 +7171,9 @@ def write_html_dashboard(
 
         /* 导航激活态 */
         .nav-item.active {{
-            background-color: #eff6ff;
-            color: #2563eb;
-            border-right: 3px solid #2563eb;
+            background-color: #eef2ff;
+            color: #4f46e5;
+            font-weight: 600;
         }}
 
         /* 兼容原有内容的基础字体 */
@@ -6819,13 +7182,19 @@ def write_html_dashboard(
         }}
 
         /* 隐藏原始标题与角色切换器（新布局中已有对应组件） */
-        #originalContent > h1:first-of-type {{
+        #originalContent > h1:first-of-type {
             display: none;
-        }}
+        }
 
-        #originalContent .role-selector {{
+        #originalContent .role-selector {
             display: none;
-        }}
+        }
+
+        /* 运营视角下隐藏仪表盘标题和统计卡片 */
+        .role-ops #dashboardHeader,
+        .role-ops #dashboardStats {
+            display: none !important;
+        }
 
         /* 原有 meta/summary 等区域样式微调以适配新布局 */
         .meta {{
@@ -7330,13 +7699,13 @@ def write_html_dashboard(
         <main class="flex-1 overflow-y-auto p-6 md:p-8 scroll-smooth">
             <div class="max-w-[1600px] mx-auto">
                 <!-- 标题 -->
-                <div class="mb-6">
+                <div class="mb-6" id="dashboardHeader">
                     <h2 class="text-2xl font-bold text-slate-900">客户触达仪表盘</h2>
                     <p class="text-sm text-slate-500 mt-1">生成日期: {gen_date}</p>
                 </div>
 
                 <!-- 统计卡片网格 -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="dashboardStats">
                     <!-- 卡片1: 高优先级客户 -->
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group">
                         <div class="flex justify-between items-start">
@@ -7402,6 +7771,11 @@ def write_html_dashboard(
                     </div>
                 </div>
 
+                <!-- 运营搜索框 (仅在运营视角显示) -->
+                <div class="operations-search-container hidden" id="opsSearchContainer">
+                    <input type="text" id="operationsSearchBox" class="operations-search-box" placeholder="全局搜索：输入客户姓名、手机号、订单号..." />
+                </div>
+
                 <!-- 原有内容 -->
                 <div id="originalContent">
 {body_content}
@@ -7421,7 +7795,8 @@ def write_html_dashboard(
     <!-- 布局适配脚本 -->
     <script>
         var __ac;
-        function playSound(kind) {
+        // 预先定义 playSound 避免 ReferenceError
+        window.playSound = function(kind) {
             try {
                 var AC = __ac || (__ac = new (window.AudioContext || window.webkitAudioContext)());
                 if (AC.state === 'suspended') { AC.resume().catch(function(){}); }
@@ -7442,7 +7817,10 @@ def write_html_dashboard(
                 o.start(t);
                 o.stop(t + 0.2);
             } catch (e) {}
-        }
+        };
+        
+        function playSound(kind) { window.playSound(kind); }
+
         document.addEventListener('pointerdown', function(){ try { if (__ac && __ac.state === 'suspended') __ac.resume(); } catch(e){} }, { once: true });
         // 同步顶部角色切换到原有的 radio 按钮
         function switchTopRole(role) {
